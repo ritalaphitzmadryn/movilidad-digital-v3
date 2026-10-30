@@ -1,0 +1,10 @@
+# "/bin/ "evita que los archivos .class compilados por Eclipse se suban al repositorio.
+/bin/
+# Configuraciones locales de Eclipse
+.settings/
+.classpath
+.project
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
