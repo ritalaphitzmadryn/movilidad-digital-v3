@@ -1,4 +1,4 @@
-package md.impl.cli;
+package md.ui.impl.cli;
 
 import java.util.Scanner;
 

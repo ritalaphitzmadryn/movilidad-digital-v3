@@ -9,10 +9,10 @@ import md.datos.DAO.DAOFactory;
 import md.datos.DAO.ServicioDAO;
 import md.datos.DAO.UsuariosDAO;
 import md.datos.DAO.VehiculosDAO;
-import md.impl.cli.MenuPrincipal;
 import md.logica.GestorMovilidad;
 import md.modelo.Usuario;
 import md.modelo.Vehiculo;
+import md.ui.impl.cli.MenuPrincipal;
 import md.modelo.Servicio;
 
 public class Aplicacion {

@@ -1,0 +1,83 @@
+/* Tema Moderno para la aplicación Subte en JavaFX */
+.root {
+    -fx-font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #f4f6f9;
+}
+
+/* Header Banner */
+.header-container {
+    -fx-background-color: linear-gradient(to right, #1e3c72, #2a5298);
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 8, 0, 0, 4);
+}
+
+.header-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-fill: #ffffff;
+}
+
+.header-subtitle {
+    -fx-font-size: 13px;
+    -fx-fill: #d0e1fd;
+}
+
+/* Card Panel */
+.card-panel {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 10px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 6, 0, 0, 2);
+}
+
+.form-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+}
+
+/* Controls */
+.combo-box {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 4px;
+}
+
+.combo-box:hover {
+    -fx-border-color: #2a5298;
+}
+
+.btn-primary {
+    -fx-background-color: linear-gradient(to bottom, #2a5298, #1e3c72);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 24px;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to bottom, #3b65b0, #2a5298);
+}
+
+/* ListView & Output */
+.list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #e0e0e0;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+.result-badge {
+    -fx-background-color: #e8f4fd;
+    -fx-text-fill: #1e3c72;
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-padding: 10px;
+    -fx-background-radius: 6px;
+    -fx-border-color: #b6d4fe;
+    -fx-border-radius: 6px;
+}
