@@ -1,9 +1,6 @@
-
 package md.aplicacion;
-
 import java.util.List;
 import java.util.Map;
-
 import md.config.DAOLoader;
 import md.datos.DAO.DAOFactory;
 import md.datos.DAO.ServicioDAO;

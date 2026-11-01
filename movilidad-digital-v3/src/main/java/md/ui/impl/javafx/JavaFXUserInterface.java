@@ -1,4 +1,4 @@
-package md.ui.impljavafx;
+package md.ui.impl.javafx;
 
 public class JavaFXUserInterface {
 
