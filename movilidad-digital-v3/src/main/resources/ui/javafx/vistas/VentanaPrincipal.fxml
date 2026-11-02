@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
@@ -10,6 +9,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.web.WebView?>
 
 <BorderPane prefHeight="517.0" prefWidth="735.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.ui.impl.javafx.controller.VentanaPrincipalController">
@@ -30,7 +30,7 @@
       </MenuBar>
    </top>
    <left>
-      <VBox prefHeight="200.0" prefWidth="250.0" spacing="10.0" style="-fx-background-color: #2a5298; -fx-padding: 15;" BorderPane.alignment="CENTER">
+      <VBox prefHeight="200.0" prefWidth="250.5" spacing="10.0" style="-fx-background-color: #2a5298; -fx-padding: 15;" BorderPane.alignment="CENTER">
          <children>
             <Label style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;" text="Panel de Control" />
             <Label style="-fx-text-fill: white;" text="Origen:" />
@@ -43,14 +43,15 @@
          </children>
       </VBox>
    </left>
-  <center>
-      <VBox style="-fx-background-color: #00A86B; -fx-padding: 10;" BorderPane.alignment="CENTER">
+   <center>
+      <VBox style="-fx-background-color: #00A86B;" BorderPane.alignment="CENTER">
          <children>
-            <WebView fx:id="mapWebView" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
-               <VBox.margin>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </VBox.margin>
+            <WebView fx:id="mapWebView">
+               <VBox.vgrow>
+                  <Priority fx:constant="ALWAYS" />
+               </VBox.vgrow>
             </WebView>
          </children>
       </VBox>
-   </center>   </BorderPane>
+   </center>
+</BorderPane>
