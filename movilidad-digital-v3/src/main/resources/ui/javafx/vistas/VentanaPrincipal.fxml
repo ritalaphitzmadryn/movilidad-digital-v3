@@ -44,14 +44,6 @@
       </VBox>
    </left>
    <center>
-      <VBox style="-fx-background-color: #00A86B;" BorderPane.alignment="CENTER">
-         <children>
-            <WebView fx:id="mapWebView">
-               <VBox.vgrow>
-                  <Priority fx:constant="ALWAYS" />
-               </VBox.vgrow>
-            </WebView>
-         </children>
-      </VBox>
+      <WebView fx:id="mapWebView" maxWidth="Infinity" maxHeight="Infinity" BorderPane.alignment="CENTER" />
    </center>
 </BorderPane>

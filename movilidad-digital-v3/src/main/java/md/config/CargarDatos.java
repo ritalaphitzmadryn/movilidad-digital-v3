@@ -22,8 +22,7 @@ public class CargarDatos {
         // VEHICULOS
         // -------------------------------
 
-        vehiculos =
-            ConfiguracionVehiculos.cargarVehiculos(
+        vehiculos = ConfiguracionVehiculos.cargarVehiculos(
                 configuracion.getArchivoVehiculos()
             );
 
@@ -31,8 +30,7 @@ public class CargarDatos {
         // SERVICIOS
         // -------------------------------
 
-        servicios =
-            ConfiguracionServicios.cargarServicios(
+        servicios = ConfiguracionServicios.cargarServicios(
                 configuracion.getArchivoServicios()
             );
 
@@ -40,8 +38,7 @@ public class CargarDatos {
         // USUARIOS
         // -------------------------------
 
-        usuarios =
-            ConfiguracionUsuarios.cargarUsuarios(
+        usuarios = ConfiguracionUsuarios.cargarUsuarios(
                 configuracion.getArchivoUsuarios(),
                 vehiculos
             );
