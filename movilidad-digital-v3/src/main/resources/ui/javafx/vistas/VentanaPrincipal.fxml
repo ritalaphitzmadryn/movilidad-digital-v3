@@ -29,21 +29,32 @@
         </menus>
       </MenuBar>
    </top>
-   <left>
-      <VBox prefHeight="200.0" prefWidth="250.5" spacing="10.0" style="-fx-background-color: #2a5298; -fx-padding: 15;" BorderPane.alignment="CENTER">
+  <left>
+      <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #2a5298; -fx-padding: 15;" BorderPane.alignment="CENTER">
          <children>
             <Label style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;" text="Panel de Control" />
+            
             <Label style="-fx-text-fill: white;" text="Origen:" />
-            <TextField fx:id="txtOrigen" promptText="Ingrese origen..." />
+            <ComboBox fx:id="cbOrigen" maxWidth="Infinity" promptText="Seleccione origen..." />
+            
             <Label style="-fx-text-fill: white;" text="Destino:" />
-            <TextField fx:id="txtDestino" promptText="Ingrese destino..." />
+            <ComboBox fx:id="cbDestino" maxWidth="Infinity" promptText="Seleccione destino..." />
+            
             <Label style="-fx-text-fill: white;" text="Tipo de Servicio:" />
-            <ComboBox fx:id="cbTipoServicio" prefWidth="230.0" />
-            <Button fx:id="btnSolicitar" mnemonicParsing="false" prefWidth="230.0" style="-fx-background-color: #ffffff; -fx-text-fill: #1e3c72; -fx-font-weight: bold;" text="Solicitar Viaje" />
+            <ComboBox fx:id="cbTipoServicio" maxWidth="Infinity" />
+            
+            <!-- Botón adaptado al ancho del panel con espacio correcto -->
+            <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1e3c72; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
          </children>
       </VBox>
-   </left>
+   </left>  
    <center>
-      <WebView fx:id="mapWebView" maxWidth="Infinity" maxHeight="Infinity" BorderPane.alignment="CENTER" />
+    <WebView fx:id="mapWebView" 
+             prefWidth="400.0" prefHeight="400.0"
+             maxWidth="Infinity" maxHeight="Infinity" 
+             BorderPane.alignment="CENTER" />
    </center>
+   
+   
+   
 </BorderPane>

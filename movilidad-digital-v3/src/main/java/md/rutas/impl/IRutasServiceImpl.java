@@ -6,7 +6,7 @@ public class IRutasServiceImpl implements IRutasService {
 
     @Override
     public String calcularRuta(double latOrigen, double lonOrigen, double latDestino, double lonDestino) {
-        System.out.println("Calculando ruta en RutasServiceImpl...");
+        System.out.println("Calculando ruta en IRutasServiceImpl...");
         // Lógica de cálculo o simulación de trayecto
         return "Ruta óptima desde (" + latOrigen + ", " + lonOrigen + ") hasta (" + latDestino + ", " + lonDestino + ")";
     }
@@ -23,6 +23,8 @@ public class IRutasServiceImpl implements IRutasService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         
         double distancia = 6371 * c; // Radio aproximado de la Tierra en km
+        
+        // Redondear a 2 decimales
         return Math.round(distancia * 100.0) / 100.0;
     }
 }

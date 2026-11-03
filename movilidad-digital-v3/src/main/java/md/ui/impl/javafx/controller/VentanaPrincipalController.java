@@ -12,8 +12,12 @@ import java.net.URL;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
-public class VentanaPrincipalController implements Initializable {
+// Importamos la interfaz y la implementación concreta del servicio de rutas
+import md.rutas.api.IRutasService;
+import md.rutas.impl.IRutasServiceImpl;
 
+public class VentanaPrincipalController implements Initializable {
+	
     @FXML
     private ComboBox<String> cbOrigen;
 
@@ -31,8 +35,14 @@ public class VentanaPrincipalController implements Initializable {
 
     private WebEngine webEngine;
 
+    // Instanciamos directamente nuestra implementación concreta
+    private IRutasService rutasService = new IRutasServiceImpl();
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Inicializamos el servicio de rutas de forma explícita
+        this.rutasService = new IRutasServiceImpl();
+
         // 1. Cargar las opciones del ComboBox de tipo de servicio
         if (cbTipoServicio != null) {
             cbTipoServicio.getItems().addAll("Económico", "Standard", "Confort", "VIP");
@@ -63,7 +73,7 @@ public class VentanaPrincipalController implements Initializable {
             cbOrigen.setItems(ubicaciones);
             cbDestino.setItems(ubicaciones);
         }
-
+        
         // 3. Configuración del mapa (WebView)
         if (mapWebView != null) {
             webEngine = mapWebView.getEngine();
@@ -71,6 +81,17 @@ public class VentanaPrincipalController implements Initializable {
             webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
                 if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
                     webEngine.executeScript("if(typeof map !== 'undefined') { map.invalidateSize(true); }");
+                    
+                    new Thread(() -> {
+                        try {
+                            Thread.sleep(250);
+                            javafx.application.Platform.runLater(() -> {
+                                webEngine.executeScript("if(typeof map !== 'undefined') { map.invalidateSize(true); }");
+                            });
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }).start();
                 }
             });
 
@@ -80,8 +101,8 @@ public class VentanaPrincipalController implements Initializable {
             } else {
                 System.err.println("No se pudo encontrar el archivo mapa.html");
             }
-        }
-        
+        }        
+
         // 4. Vincular el botón
         if (btnSolicitar != null) {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
@@ -90,36 +111,53 @@ public class VentanaPrincipalController implements Initializable {
 
     @FXML
     private void handleSolicitarViaje() {
+        // 1. Obtener los valores seleccionados de los ComboBox
         String origen = cbOrigen != null ? cbOrigen.getValue() : null;
         String destino = cbDestino != null ? cbDestino.getValue() : null;
-        String tipoServicio = cbTipoServicio != null ? cbTipoServicio.getValue() : "";
+        String tipoServicio = cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard";
         
-        // Validaciones básicas
-        if (origen == null || destino == null || origen.isEmpty() || destino.isEmpty()) {
-            System.err.println("Por favor seleccione un origen y un destino válidos.");
+        // 2. Validaciones básicas de seguridad
+        if (origen == null || origen.isEmpty() || destino == null || destino.isEmpty()) {
+            System.err.println("Error: Debe seleccionar un origen y un destino.");
             return;
         }
         
         if (origen.equals(destino)) {
-            System.err.println("El origen y el destino no pueden ser iguales.");
+            System.err.println("Error: El origen y el destino no pueden ser el mismo lugar.");
             return;
         }
         
-        System.out.println("Solicitando viaje (" + tipoServicio + ") de: " + origen + " a " + destino);
+        System.out.println("--- SOLICITUD DE VIAJE (" + tipoServicio + ") ---");
+        System.out.println("Desde: " + origen + " -> Hacia: " + destino);
         
-        // Obtener coordenadas reales según el lugar seleccionado
+        // 3. Obtener las coordenadas geográficas de los lugares seleccionados
         double[] coordsOrigen = obtenerCoordenadas(origen);
         double[] coordsDestino = obtenerCoordenadas(destino);
         
-        // Ejecutar el script en el mapa de Leaflet para trazar la ruta
+        // 4. Utilizar IRutasService para calcular la ruta y la distancia estimada
+        if (rutasService != null) {
+            String detalleRuta = rutasService.calcularRuta(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+            double distanciaKm = rutasService.calcularDistanciaKm(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+            
+            System.out.println("Detalle de ruta (Servicio): " + detalleRuta);
+            System.out.println(String.format(Locale.US, "Distancia calculada: %.2f km", distanciaKm));
+        } else {
+            System.out.println("Aviso: IRutasService no está inicializado todavía.");
+        }
+        
+        // 5. Ejecutar la función de JavaScript en el WebView para trazar la ruta en Leaflet
         if (webEngine != null) {
             String script = String.format(Locale.US, "trazarRuta(%f, %f, %f, %f);", 
-                coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+                coordsOrigen[0], coordsOrigen[1], 
+                coordsDestino[0], coordsDestino[1]
+            );
             webEngine.executeScript(script);
+        } else {
+            System.err.println("El motor del mapa (WebEngine) no está inicializado.");
         }
     }
     
-    // Mapeo completo de coordenadas reales para cada ubicación en Puerto Madryn
+    // Método auxiliar para mapear cada ubicación con sus coordenadas reales en Puerto Madryn
     private double[] obtenerCoordenadas(String lugar) {
         switch (lugar) {
             case "Municipalidad de Puerto Madryn": 
@@ -155,7 +193,7 @@ public class VentanaPrincipalController implements Initializable {
             case "Polideportivo Municipal": 
                 return new double[]{-42.7610, -65.0720};
             default: 
-                return new double[]{-42.7692, -65.0385}; // Centro por defecto
+                return new double[]{-42.7692, -65.0385}; // Coordenada por defecto (Centro)
         }
     }
 }
