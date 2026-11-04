@@ -49,11 +49,11 @@
       </VBox>
    </left>  
    <center>
-    <WebView fx:id="mapWebView" 
-             prefWidth="400.0" prefHeight="400.0"
-             maxWidth="Infinity" maxHeight="Infinity" 
+    <WebView fx:id="mapWebView"
+             maxWidth="Infinity"
+             maxHeight="Infinity"
              BorderPane.alignment="CENTER" />
-   </center>
+</center>
    
    
    

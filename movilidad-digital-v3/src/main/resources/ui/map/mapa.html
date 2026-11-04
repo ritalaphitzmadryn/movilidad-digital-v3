@@ -2,7 +2,10 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
     <style>
         html, body {
             width: 100%;
@@ -11,84 +14,94 @@
             padding: 0;
             overflow: hidden;
         }
+
         #map {
-            width: 100%;
-            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
         }
     </style>
 </head>
+
 <body>
+
     <div id="map"></div>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    
+
     <script>
-        // 1. Inicializar el mapa centrado en Puerto Madryn
         var map = L.map('map', {
             zoomControl: true,
             fadeAnimation: false,
             zoomAnimation: false
         }).setView([-42.7692, -65.0385], 13);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }
+        ).addTo(map);
 
-        // Variables globales para almacenar los marcadores y la línea activa y evitar duplicados
         var markerOrigen = null;
         var markerDestino = null;
         var polylineRuta = null;
 
-        /**
-         * Función llamada desde Java (WebView) para trazar la ruta en el mapa
-         */
-        function trazarRuta(latOrigen, lonOrigen, latDestino, lonDestino) {
-            // Si ya existían marcadores o ruta anterior, los borramos del mapa
-            if (markerOrigen) map.removeLayer(markerOrigen);
-            if (markerDestino) map.removeLayer(markerDestino);
-            if (polylineRuta) map.removeLayer(polylineRuta);
+        function trazarRuta(latOrigen, lonOrigen,
+                            latDestino, lonDestino) {
 
-            // Crear nuevo marcador de Origen
+            if (markerOrigen) {
+                map.removeLayer(markerOrigen);
+            }
+
+            if (markerDestino) {
+                map.removeLayer(markerDestino);
+            }
+
+            if (polylineRuta) {
+                map.removeLayer(polylineRuta);
+            }
+
             markerOrigen = L.marker([latOrigen, lonOrigen])
                 .addTo(map)
                 .bindPopup("<b>Origen del Viaje</b>");
 
-            // Crear nuevo marcador de Destino
             markerDestino = L.marker([latDestino, lonDestino])
                 .addTo(map)
                 .bindPopup("<b>Destino del Viaje</b>");
 
-            // Coordenadas para la línea de ruta
             var latlngs = [
                 [latOrigen, lonOrigen],
                 [latDestino, lonDestino]
             ];
 
-            // Dibujar la línea azul de la ruta
             polylineRuta = L.polyline(latlngs, {
-                color: '#2a5298', 
+                color: '#2a5298',
                 weight: 5,
                 opacity: 0.8
             }).addTo(map);
 
-            // Ajustar automáticamente el zoom del mapa para que encuadre ambos puntos perfectamente
-            var bounds = L.latLngBounds(latlngs);
-            map.fitBounds(bounds, { padding: [50, 50] });
+            map.fitBounds(L.latLngBounds(latlngs), {
+                padding: [50, 50]
+            });
 
-            // Forzar actualización de tamaño por seguridad
             map.invalidateSize(true);
         }
 
-        // Forzar la recarga de mosaicos de manera progresiva al iniciar
-        [100, 300, 600, 1000, 1500].forEach(function(delay) {
-            setTimeout(function() {
-                map.invalidateSize(true);
-            }, delay);
-        });
+        // Función que puede invocarse desde JavaFX
+        function actualizarTamanoMapa() {
+            map.invalidateSize(true);
+        }
 
         window.addEventListener('resize', function() {
-            map.invalidateSize(true);
+            actualizarTamanoMapa();
         });
+
     </script>
+
 </body>
 </html>
+```

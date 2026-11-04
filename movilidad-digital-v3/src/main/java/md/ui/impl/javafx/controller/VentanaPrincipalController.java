@@ -38,6 +38,24 @@ public class VentanaPrincipalController implements Initializable {
     // Instanciamos directamente nuestra implementación concreta
     private IRutasService rutasService = new IRutasServiceImpl();
 
+    private void actualizarTamanoMapa() {
+        if (webEngine != null) {
+            javafx.application.Platform.runLater(() -> {
+                try {
+                    webEngine.executeScript(
+                        "if (typeof actualizarTamanoMapa === 'function') {" +
+                        "    actualizarTamanoMapa();" +
+                        "}"
+                    );
+                } catch (Exception e) {
+                    System.err.println(
+                        "Error al actualizar el tamaño del mapa: " + e.getMessage()
+                    );
+                }
+            });
+        }
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Inicializamos el servicio de rutas de forma explícita
@@ -77,32 +95,35 @@ public class VentanaPrincipalController implements Initializable {
         // 3. Configuración del mapa (WebView)
         if (mapWebView != null) {
             webEngine = mapWebView.getEngine();
-            
-            webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
-                if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
-                    webEngine.executeScript("if(typeof map !== 'undefined') { map.invalidateSize(true); }");
-                    
-                    new Thread(() -> {
-                        try {
-                            Thread.sleep(250);
-                            javafx.application.Platform.runLater(() -> {
-                                webEngine.executeScript("if(typeof map !== 'undefined') { map.invalidateSize(true); }");
-                            });
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }).start();
-                }
-            });
 
             URL mapUrl = getClass().getResource("/ui/map/mapa.html");
+
             if (mapUrl != null) {
+                // Escuchar cambios de tamaño del WebView
+                mapWebView.widthProperty().addListener(
+                    (obs, oldVal, newVal) -> actualizarTamanoMapa()
+                );
+
+                mapWebView.heightProperty().addListener(
+                    (obs, oldVal, newVal) -> actualizarTamanoMapa()
+                );
+
+                // Esperar a que el HTML termine de cargar
+                webEngine.getLoadWorker().stateProperty().addListener(
+                    (obs, oldState, newState) -> {
+                        if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                            actualizarTamanoMapa();
+                        }
+                    }
+                );
+
+                // Cargar el archivo HTML en el motor
                 webEngine.load(mapUrl.toExternalForm());
             } else {
                 System.err.println("No se pudo encontrar el archivo mapa.html");
             }
-        }        
-
+        }
+            
         // 4. Vincular el botón
         if (btnSolicitar != null) {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
