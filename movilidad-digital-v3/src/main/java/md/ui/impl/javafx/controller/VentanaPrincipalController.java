@@ -31,9 +31,9 @@ public class VentanaPrincipalController implements Initializable {
     private Button btnSolicitar;
 
     @FXML
-    private WebView mapWebView;
+    public WebView mapWebView;
 
-    private WebEngine webEngine;
+    public WebEngine webEngine;
 
     // Instanciamos directamente nuestra implementación concreta
     private IRutasService rutasService = new IRutasServiceImpl();
@@ -66,8 +66,8 @@ public class VentanaPrincipalController implements Initializable {
             cbTipoServicio.getItems().addAll("Económico", "Standard", "Confort", "VIP");
             cbTipoServicio.getSelectionModel().selectFirst();
         }
-
-        // 2. Cargar las opciones completas en los ComboBox de Origen y Destino
+        
+     // 2. Cargar las opciones completas en los ComboBox de Origen y Destino
         if (cbOrigen != null && cbDestino != null) {
             ObservableList<String> ubicaciones = FXCollections.observableArrayList(
                 "Municipalidad de Puerto Madryn",
@@ -90,6 +90,12 @@ public class VentanaPrincipalController implements Initializable {
             
             cbOrigen.setItems(ubicaciones);
             cbDestino.setItems(ubicaciones);
+            
+            // Preseleccionar valores iniciales para evitar que comiencen en null
+            cbOrigen.getSelectionModel().selectFirst(); // Selecciona "Municipalidad de Puerto Madryn"
+            if (ubicaciones.size() > 1) {
+                cbDestino.getSelectionModel().select(1); // Selecciona "Puerto Almirante Brown / Storni"
+            }
         }
         
         // 3. Configuración del mapa (WebView)
