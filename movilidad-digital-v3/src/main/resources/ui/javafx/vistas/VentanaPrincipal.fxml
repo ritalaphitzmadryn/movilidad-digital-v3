@@ -6,10 +6,8 @@
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.web.WebView?>
 
 <BorderPane prefHeight="517.0" prefWidth="735.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.ui.impl.javafx.controller.VentanaPrincipalController">
@@ -29,10 +27,13 @@
         </menus>
       </MenuBar>
    </top>
-  <left>
-      <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #2a5298; -fx-padding: 15;" BorderPane.alignment="CENTER">
+   <left>
+      <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #1b5e20; -fx-padding: 15;" BorderPane.alignment="CENTER">
          <children>
             <Label style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;" text="Panel de Control" />
+            
+            <Label style="-fx-text-fill: white;" text="Tipo de Usuario:" />
+            <ComboBox fx:id="cbTipoUsuario" maxWidth="Infinity" promptText="Seleccionar perfil..." />
             
             <Label style="-fx-text-fill: white;" text="Origen:" />
             <ComboBox fx:id="cbOrigen" maxWidth="Infinity" promptText="Seleccione origen..." />
@@ -43,18 +44,15 @@
             <Label style="-fx-text-fill: white;" text="Tipo de Servicio:" />
             <ComboBox fx:id="cbTipoServicio" maxWidth="Infinity" />
             
-            <!-- Botón adaptado al ancho del panel con espacio correcto -->
-            <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1e3c72; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
+            <!-- Botón adaptado al ancho del panel con colores acordes al verde -->
+            <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
+            
+            <!-- Etiqueta para mostrar los resultados en pantalla -->
+            <Label fx:id="lblResultadoViaje" wrapText="true" style="-fx-text-fill: #e8f5e9; -fx-font-size: 13px;" />        
          </children>
       </VBox>
    </left>  
    <center>
-    <WebView fx:id="mapWebView"
-             maxWidth="Infinity"
-             maxHeight="Infinity"
-             BorderPane.alignment="CENTER" />
-</center>
-   
-   
-   
+      <WebView fx:id="mapWebView" maxWidth="Infinity" maxHeight="Infinity" BorderPane.alignment="CENTER" />
+   </center>
 </BorderPane>

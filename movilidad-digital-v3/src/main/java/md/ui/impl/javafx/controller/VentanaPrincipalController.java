@@ -1,5 +1,10 @@
 package md.ui.impl.javafx.controller;
 
+import java.util.List;
+import javafx.scene.control.Label;
+import md.logica.GestorMovilidad; 
+import md.modelo.*;
+import md.aplicacion.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -9,6 +14,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -18,6 +24,12 @@ import md.rutas.impl.IRutasServiceImpl;
 
 public class VentanaPrincipalController implements Initializable {
 	
+    @FXML
+    private Label lblResultadoViaje; 
+    
+    @FXML
+    private ComboBox<String> cbTipoUsuario; // Selector verde de perfil
+
     @FXML
     private ComboBox<String> cbOrigen;
 
@@ -34,7 +46,7 @@ public class VentanaPrincipalController implements Initializable {
     public WebView mapWebView;
 
     public WebEngine webEngine;
-
+    
     // Instanciamos directamente nuestra implementación concreta
     private IRutasService rutasService = new IRutasServiceImpl();
 
@@ -61,13 +73,19 @@ public class VentanaPrincipalController implements Initializable {
         // Inicializamos el servicio de rutas de forma explícita
         this.rutasService = new IRutasServiceImpl();
 
-        // 1. Cargar las opciones del ComboBox de tipo de servicio
+        // 1. Cargar las opciones del ComboBox de Tipo de Usuario
+        if (cbTipoUsuario != null) {
+            cbTipoUsuario.getItems().addAll("Cliente (Pasajero)", "Conductor");
+            cbTipoUsuario.getSelectionModel().selectFirst();
+        }
+
+        // 2. Cargar las opciones del ComboBox de tipo de servicio
         if (cbTipoServicio != null) {
             cbTipoServicio.getItems().addAll("Económico", "Standard", "Confort", "VIP");
             cbTipoServicio.getSelectionModel().selectFirst();
         }
         
-     // 2. Cargar las opciones completas en los ComboBox de Origen y Destino
+        // 3. Cargar las opciones completas en los ComboBox de Origen y Destino
         if (cbOrigen != null && cbDestino != null) {
             ObservableList<String> ubicaciones = FXCollections.observableArrayList(
                 "Municipalidad de Puerto Madryn",
@@ -91,46 +109,34 @@ public class VentanaPrincipalController implements Initializable {
             cbOrigen.setItems(ubicaciones);
             cbDestino.setItems(ubicaciones);
             
-            // Preseleccionar valores iniciales para evitar que comiencen en null
-            cbOrigen.getSelectionModel().selectFirst(); // Selecciona "Municipalidad de Puerto Madryn"
+            cbOrigen.getSelectionModel().selectFirst(); 
             if (ubicaciones.size() > 1) {
-                cbDestino.getSelectionModel().select(1); // Selecciona "Puerto Almirante Brown / Storni"
+                cbDestino.getSelectionModel().select(1); 
             }
         }
         
-        // 3. Configuración del mapa (WebView)
+        // 4. Configuración del mapa (WebView)
         if (mapWebView != null) {
             webEngine = mapWebView.getEngine();
-
             URL mapUrl = getClass().getResource("/ui/map/mapa.html");
 
             if (mapUrl != null) {
-                // Escuchar cambios de tamaño del WebView
-                mapWebView.widthProperty().addListener(
-                    (obs, oldVal, newVal) -> actualizarTamanoMapa()
-                );
+                mapWebView.widthProperty().addListener((obs, oldVal, newVal) -> actualizarTamanoMapa());
+                mapWebView.heightProperty().addListener((obs, oldVal, newVal) -> actualizarTamanoMapa());
 
-                mapWebView.heightProperty().addListener(
-                    (obs, oldVal, newVal) -> actualizarTamanoMapa()
-                );
-
-                // Esperar a que el HTML termine de cargar
-                webEngine.getLoadWorker().stateProperty().addListener(
-                    (obs, oldState, newState) -> {
-                        if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
-                            actualizarTamanoMapa();
-                        }
+                webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+                    if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                        actualizarTamanoMapa();
                     }
-                );
+                });
 
-                // Cargar el archivo HTML en el motor
                 webEngine.load(mapUrl.toExternalForm());
             } else {
                 System.err.println("No se pudo encontrar el archivo mapa.html");
             }
         }
             
-        // 4. Vincular el botón
+        // 5. Vincular el botón
         if (btnSolicitar != null) {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
         }
@@ -139,6 +145,9 @@ public class VentanaPrincipalController implements Initializable {
     @FXML
     private void handleSolicitarViaje() {
         // 1. Obtener los valores seleccionados de los ComboBox
+        String tipoUsuarioSeleccionado = cbTipoUsuario != null ? cbTipoUsuario.getValue() : "Cliente (Pasajero)";
+        boolean esConductor = tipoUsuarioSeleccionado.contains("Conductor");
+
         String origen = cbOrigen != null ? cbOrigen.getValue() : null;
         String destino = cbDestino != null ? cbDestino.getValue() : null;
         String tipoServicio = cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard";
@@ -154,37 +163,110 @@ public class VentanaPrincipalController implements Initializable {
             return;
         }
         
-        System.out.println("--- SOLICITUD DE VIAJE (" + tipoServicio + ") ---");
-        System.out.println("Desde: " + origen + " -> Hacia: " + destino);
-        
-        // 3. Obtener las coordenadas geográficas de los lugares seleccionados
-        double[] coordsOrigen = obtenerCoordenadas(origen);
-        double[] coordsDestino = obtenerCoordenadas(destino);
-        
-        // 4. Utilizar IRutasService para calcular la ruta y la distancia estimada
-        if (rutasService != null) {
-            String detalleRuta = rutasService.calcularRuta(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
-            double distanciaKm = rutasService.calcularDistanciaKm(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+        try {
+            // 3. Obtenemos el gestor de movilidad digital compartido
+            GestorMovilidad gestor = Aplicacion.getGestor();
             
-            System.out.println("Detalle de ruta (Servicio): " + detalleRuta);
-            System.out.println(String.format(Locale.US, "Distancia calculada: %.2f km", distanciaKm));
-        } else {
-            System.out.println("Aviso: IRutasService no está inicializado todavía.");
-        }
+            if (gestor == null) {
+                System.err.println("Error: El GestorMovilidad no ha sido inicializado.");
+                return;
+            }
         
-        // 5. Ejecutar la función de JavaScript en el WebView para trazar la ruta en Leaflet
-        if (webEngine != null) {
-            String script = String.format(Locale.US, "trazarRuta(%f, %f, %f, %f);", 
-                coordsOrigen[0], coordsOrigen[1], 
-                coordsDestino[0], coordsDestino[1]
+            // 4. Obtener las coordenadas geográficas
+            double[] coordsOrigen = obtenerCoordenadas(origen);
+            double[] coordsDestino = obtenerCoordenadas(destino);
+            
+            double distanciaKm = 0.0;
+            String detalleRuta = "";
+            
+            // 5. Utilizar IRutasService para calcular la ruta
+            if (rutasService != null) {
+                detalleRuta = rutasService.calcularRuta(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+                distanciaKm = rutasService.calcularDistanciaKm(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+            }
+            
+            // Estimamos el tiempo en minutos (asumiendo velocidad promedio urbana de 30 km/h)
+            double tiempoMinutos = (distanciaKm / 30.0) * 60.0;
+
+            // Instanciamos el Servicio con sus 7 parámetros para calcular el costo real
+            Servicio servicioEjemplo = new Servicio(
+                tipoServicio, 
+                TipoServicio.PASAJEROS, 
+                TipoVehiculo.AUTO, 
+                CategoriaVehiculo.ESTANDAR, 
+                100.0,  // Tarifa base
+                50.0,   // Precio por km
+                10.0    // Precio por minuto
+            ); 
+
+            // Calculamos el costo utilizando tu método de dominio
+            double costoTotal = servicioEjemplo.calcularCosto(distanciaKm, tiempoMinutos);
+            
+            // 6. Buscar el usuario adecuado (Cliente o Conductor) en el gestor según la interfaz
+            List<Usuario> usuarioList = gestor.obtenerUsuarios();
+            Usuario usuarioEncontrado = null;
+            
+            for (Usuario u : usuarioList) {
+                if (esConductor) {
+                    if (u.getConductor() != null) {
+                        usuarioEncontrado = u;
+                        break;
+                    }
+                } else {
+                    if (u.getCliente() != null) {
+                        usuarioEncontrado = u;
+                        break;
+                    }
+                }
+            }
+            
+            if (usuarioEncontrado != null) {
+                // Creamos objetos de ubicación
+                Ubicacion origenObj = new Ubicacion(origen, coordsOrigen[0], coordsOrigen[1]);
+                Ubicacion destinoObj = new Ubicacion(destino, coordsDestino[0], coordsDestino[1]);
+
+                // Registramos el viaje en el gestor con el usuario correspondiente
+                Viaje nuevoViaje = gestor.solicitarViaje(usuarioEncontrado, servicioEjemplo, origenObj, destinoObj, LocalDateTime.now());
+                
+                System.out.println("¡Viaje procesado con éxito! Perfil activo: " + 
+                                   (esConductor ? "Conductor" : "Cliente") + 
+                                   " | ID de Viaje: " + nuevoViaje.getId());
+            } else {
+                System.out.println("Aviso: No se encontró un perfil de " + (esConductor ? "conductor" : "cliente") + " registrado en el sistema.");
+            }
+
+            // 7. Mostrar resultados en la etiqueta visual (`lblResultadoViaje`) y en consola
+            String resultadoTexto = String.format(
+                Locale.US, 
+                "Perfil: %s\nDistancia: %.2f km\nTiempo aprox: %.0f min\nCosto Total: $%.2f\n%s", 
+                (esConductor ? "Conductor" : "Cliente"),
+                distanciaKm, 
+                tiempoMinutos, 
+                costoTotal, 
+                detalleRuta
             );
-            webEngine.executeScript(script);
-        } else {
-            System.err.println("El motor del mapa (WebEngine) no está inicializado.");
+            
+            if (lblResultadoViaje != null) {
+                lblResultadoViaje.setText(resultadoTexto);
+            }
+            System.out.println(resultadoTexto);
+
+            // 8. Trazar ruta en el mapa JavaScript (WebView)
+            if (webEngine != null) {
+                String script = String.format(Locale.US, "trazarRuta(%f, %f, %f, %f);", 
+                    coordsOrigen[0], coordsOrigen[1], 
+                    coordsDestino[0], coordsDestino[1]
+                );
+                webEngine.executeScript(script);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error al procesar el viaje en el gestor: " + e.getMessage());
+            e.printStackTrace();
         }
     }
-    
-    // Método auxiliar para mapear cada ubicación con sus coordenadas reales en Puerto Madryn
+
+    // Método auxiliar fuera de handleSolicitarViaje
     private double[] obtenerCoordenadas(String lugar) {
         switch (lugar) {
             case "Municipalidad de Puerto Madryn": 
@@ -220,7 +302,7 @@ public class VentanaPrincipalController implements Initializable {
             case "Polideportivo Municipal": 
                 return new double[]{-42.7610, -65.0720};
             default: 
-                return new double[]{-42.7692, -65.0385}; // Coordenada por defecto (Centro)
+                return new double[]{-42.7692, -65.0385}; 
         }
     }
 }

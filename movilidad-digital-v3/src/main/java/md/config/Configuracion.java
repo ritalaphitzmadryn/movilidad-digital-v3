@@ -21,6 +21,12 @@ public class Configuracion {
                 "No se pudo leer el archivo de configuración: " + archivo, e);
         }
     }
+    public String getTipoUI() {
+        // Si en tu archivo de propiedades usas "tipoUI"
+        return propiedades.getProperty("tipoUI");
+    }
+    
+    	;
     public String getPersistencia() {
         return propiedades.getProperty("persistencia");
     }
