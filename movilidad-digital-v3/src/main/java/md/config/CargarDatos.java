@@ -2,46 +2,43 @@ package md.config;
 
 import java.util.List;
 import java.util.Map;
-
 import md.modelo.Servicio;
 import md.modelo.Usuario;
 import md.modelo.Vehiculo;
 
 public class CargarDatos {
 
-	    private Map<String, Usuario> usuarios;
-	    private Map<String, Vehiculo> vehiculos;
-	    private List<Servicio> servicios;
+    private Map<String, Usuario> usuarios;
+    private Map<String, Vehiculo> vehiculos;
+    private List<Servicio> servicios;
 
-    public CargarDatos(String archivoConfiguracion) {
+    public CargarDatos() {
+        // Como CargaParametros ahora lee estáticamente application.properties,
+        // no necesitamos pasarle nombres de archivos por parámetro en el constructor.
+        
+        try {
+            // -------------------------------
+            // VEHICULOS
+            // -------------------------------
+            String archivoVehiculos = CargaParametros.getProperty("app.vehiculos", "vehiculos.json"); // Ajustá la key según tu properties
+            vehiculos = ConfiguracionVehiculos.cargarVehiculos(archivoVehiculos);
 
-        Configuracion configuracion =
-            new Configuracion(archivoConfiguracion);
+            // -------------------------------
+            // SERVICIOS
+            // -------------------------------
+            String archivoServicios = CargaParametros.getProperty("app.servicios", "servicios.json");
+            servicios = ConfiguracionServicios.cargarServicios(archivoServicios);
 
-        // -------------------------------
-        // VEHICULOS
-        // -------------------------------
+            // -------------------------------
+            // USUARIOS
+            // -------------------------------
+            String archivoUsuarios = CargaParametros.getProperty("app.usuarios", "usuarios.json");
+            usuarios = ConfiguracionUsuarios.cargarUsuarios(archivoUsuarios, vehiculos);
 
-        vehiculos = ConfiguracionVehiculos.cargarVehiculos(
-                configuracion.getArchivoVehiculos()
-            );
-
-        // -------------------------------
-        // SERVICIOS
-        // -------------------------------
-
-        servicios = ConfiguracionServicios.cargarServicios(
-                configuracion.getArchivoServicios()
-            );
-
-        // -------------------------------
-        // USUARIOS
-        // -------------------------------
-
-        usuarios = ConfiguracionUsuarios.cargarUsuarios(
-                configuracion.getArchivoUsuarios(),
-                vehiculos
-            );
+        } catch (Exception e) {
+            System.err.println("Error al cargar los datos de configuración: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public Map<String, Usuario> getUsuarios() {
