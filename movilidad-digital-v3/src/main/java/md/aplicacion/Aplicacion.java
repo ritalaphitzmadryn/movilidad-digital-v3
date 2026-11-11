@@ -2,8 +2,8 @@ package md.aplicacion;
 
 import java.util.List;
 import java.util.Map;
-import md.config.Configuracion;
 import md.config.DAOLoader;
+import md.config.UILoader; 
 import md.datos.DAO.DAOFactory;
 import md.datos.DAO.ServicioDAO;
 import md.datos.DAO.UsuariosDAO;
@@ -12,8 +12,7 @@ import md.logica.GestorMovilidad;
 import md.modelo.Usuario;
 import md.modelo.Vehiculo;
 import md.modelo.Servicio;
-import md.ui.impl.cli.MenuPrincipal;
-import md.ui.impl.javafx.MainApp;
+import md.ui.api.IInterfazUsuario; // O UIEngine (contrato común)
 
 public class Aplicacion {
 
@@ -58,33 +57,20 @@ public class Aplicacion {
                 gestor.agregarServicio(servicio);
             }
 
-            // 5. Leer la configuración para saber qué interfaz levantar
-            Configuracion config = new Configuracion("config.properties");
-            String tipoUi = config.getTipoUI();
+            // 5. Delegamos la creación de la UI en el UILoader (según pide la guía)
+            // El UILoader lee el archivo config.properties y devuelve la implementación correspondiente
+            IInterfazUsuario ui = UILoader.crearInterfaz(gestor);
 
-            // Si no está definido en el archivo, por defecto usamos "javafx"
-            if (tipoUi == null || tipoUi.isBlank()) {
-                tipoUi = "javafx";
-            }
-            tipoUi = tipoUi.trim().toLowerCase();
-
-            System.out.println("Configuración detectada - tipoUI = " + tipoUi);
-
-            // 6. Decidir qué interfaz iniciar
-            if (tipoUi.equals("cli")) {
-                System.out.println("Iniciando interfaz por Consola (CLI)...");
-                MenuPrincipal menu = new MenuPrincipal(gestor);
-                menu.mostrarMenu();
-            } else if (tipoUi.equals("javafx")) {
-                System.out.println("Iniciando interfaz gráfica (JavaFX)...");
-                javafx.application.Application.launch(MainApp.class, args);
+            if (ui != null) {
+                System.out.println("Iniciando interfaz de usuario...");
+                ui.iniciar(); // O ui.start() si renombraste el método al contrato de la guía
             } else {
-                throw new IllegalStateException("Tipo de interfaz no reconocido: " + tipoUi);
+                System.err.println("Error: No se pudo cargar ninguna interfaz de usuario.");
             }
 
         } catch (Exception e) {
             System.err.println("Error al iniciar Movilidad Digital: " + e.getMessage());
             e.printStackTrace();
         }
-    } 
-} 
+    }
+}

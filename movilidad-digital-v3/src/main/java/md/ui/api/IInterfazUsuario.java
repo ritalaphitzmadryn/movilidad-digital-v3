@@ -1,9 +1,11 @@
 package md.ui.api;
 
 /**
- * Contrato general para cualquier tipo de interfaz de usuario 
- * (CLI, JavaFX, Web, etc.) en el sistema Movilidad Digital.
+ * IInterfazUsuario funciona como el UIEngine:
+Contrato general para cualquier tipo de interfaz de usuario 
+ * (CLI, JavaFX, Web, etc.) .
  */
+
 public interface IInterfazUsuario {
     
     /**

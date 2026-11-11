@@ -1,28 +1,39 @@
 package md.config;
 
+import md.logica.GestorMovilidad;
 import md.ui.api.IInterfazUsuario;
 import md.ui.impl.cli.InterfazUsuario;
-import md.ui.impl.javafx.JavaFXUserInterface;
-import md.logica.*;
+import md.ui.impl.javafx.MainApp;
 
 public class UILoader {
 
     public static IInterfazUsuario crearInterfaz(GestorMovilidad gestor) {
-        // Usamos la instancia o método de tu clase Configuracion existente
-        Configuracion config = new Configuracion("config.properties"); // O si es estático, lo llamás según corresponda
+        Configuracion config = new Configuracion("config.properties");
         String tipoUi = config.getTipoUI();
 
-        // Si no está definido en el archivo, por defecto levantamos "cli"
-        if (tipoUi == null) {
-            tipoUi = "cli";
+        if (tipoUi == null || tipoUi.isBlank()) {
+            tipoUi = "javafx"; // Por defecto si no encuentra nada
         }
 
         tipoUi = tipoUi.trim().toLowerCase();
 
-        if (tipoUi.equals("javafx")) {
-            return new JavaFXUserInterface();
-        } else {
+        if (tipoUi.equals("cli")) {
+            System.out.println("Fábrica UILoader: Seleccionada interfaz de Consola (CLI)");
             return new InterfazUsuario(gestor);
+        } else {
+            System.out.println("Fábrica UILoader: Seleccionada interfaz Gráfica (JavaFX)");
+            // Retornamos la implementación que lanza JavaFX de forma segura
+            return new IInterfazUsuario() {
+                @Override
+                public void iniciar() {
+                    javafx.application.Application.launch(MainApp.class);
+                }
+
+                @Override
+                public void detener() {
+                    System.out.println("Cerrando aplicación JavaFX...");
+                }
+            };
         }
     }
 }
