@@ -251,7 +251,7 @@ public class VentanaPrincipalController implements Initializable {
             }
             System.out.println(resultadoTexto);
 
-            // 8. Trazar ruta en el mapa JavaScript (WebView)
+         // 8. Trazar ruta en el mapa JavaScript (WebView)
             if (webEngine != null) {
                 String script = String.format(Locale.US, "trazarRuta(%f, %f, %f, %f);", 
                     coordsOrigen[0], coordsOrigen[1], 
@@ -259,8 +259,8 @@ public class VentanaPrincipalController implements Initializable {
                 );
                 webEngine.executeScript(script);
             }
-
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             System.err.println("Error al procesar el viaje en el gestor: " + e.getMessage());
             e.printStackTrace();
         }

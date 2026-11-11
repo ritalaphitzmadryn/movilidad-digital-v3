@@ -52,46 +52,50 @@
         var markerDestino = null;
         var polylineRuta = null;
 
-        function trazarRuta(latOrigen, lonOrigen,
-                            latDestino, lonDestino) {
+		function trazarRuta(latOrigen, lonOrigen,
+		                            latDestino, lonDestino) {
 
-            if (markerOrigen) {
-                map.removeLayer(markerOrigen);
-            }
+		            if (markerOrigen) {
+		                map.removeLayer(markerOrigen);
+		            }
 
-            if (markerDestino) {
-                map.removeLayer(markerDestino);
-            }
+		            if (markerDestino) {
+		                map.removeLayer(markerDestino);
+		            }
 
-            if (polylineRuta) {
-                map.removeLayer(polylineRuta);
-            }
+		            if (polylineRuta) {
+		                map.removeLayer(polylineRuta);
+		            }
 
-            markerOrigen = L.marker([latOrigen, lonOrigen])
-                .addTo(map)
-                .bindPopup("<b>Origen del Viaje</b>");
+		            // Creamos explícitamente los puntos con L.latLng para blindar el orden y formato
+		            var origenLatLng = L.latLng(latOrigen, lonOrigen);
+		            var destinoLatLng = L.latLng(latDestino, lonDestino);
 
-            markerDestino = L.marker([latDestino, lonDestino])
-                .addTo(map)
-                .bindPopup("<b>Destino del Viaje</b>");
+		            markerOrigen = L.marker(origenLatLng)
+		                .addTo(map)
+		                .bindPopup("<b>Origen del Viaje</b>");
 
-            var latlngs = [
-                [latOrigen, lonOrigen],
-                [latDestino, lonDestino]
-            ];
+		            markerDestino = L.marker(destinoLatLng)
+		                .addTo(map)
+		                .bindPopup("<b>Destino del Viaje</b>");
 
-            polylineRuta = L.polyline(latlngs, {
-                color: '#2a5298',
-                weight: 5,
-                opacity: 0.8
-            }).addTo(map);
+		            var latlngs = [
+		                origenLatLng,
+		                destinoLatLng
+		            ];
 
-            map.fitBounds(L.latLngBounds(latlngs), {
-                padding: [50, 50]
-            });
+		            polylineRuta = L.polyline(latlngs, {
+		                color: '#2a5298',
+		                weight: 5,
+		                opacity: 0.8
+		            }).addTo(map);
 
-            map.invalidateSize(true);
-        }
+		            map.fitBounds(L.latLngBounds(latlngs), {
+		                padding: [50, 50]
+		            });
+
+		            map.invalidateSize(true);
+		        }
 
         // Función que puede invocarse desde JavaFX
         function actualizarTamanoMapa() {
