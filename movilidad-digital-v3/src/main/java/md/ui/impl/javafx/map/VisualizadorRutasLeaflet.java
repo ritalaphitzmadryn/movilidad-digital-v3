@@ -7,6 +7,7 @@ import javafx.scene.web.WebView;
 import netscape.javascript.JSObject;
 import java.net.URL;
 import java.util.function.BiConsumer;
+import java.util.Locale;
 
 public class VisualizadorRutasLeaflet {
 
@@ -59,11 +60,26 @@ public class VisualizadorRutasLeaflet {
             webEngine.executeScript(String.format("mostrarMarcadorSeleccion('%s', %f, %f);", tipo, lat, lon));
         }
     }
-
-    public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD) {
+    public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD, String jsonCoordsAcercamiento, String jsonCoordsTraslado) {
         if (cargado) {
-            String script = String.format("trazarRutasCompletas(%f, %f, %f, %f, %f, %f, [], []);", 
-                latM, lonM, latO, lonO, latD, lonD);
+            String acercamiento = (jsonCoordsAcercamiento != null && !jsonCoordsAcercamiento.isEmpty()) ? jsonCoordsAcercamiento : "[]";
+            String traslado = (jsonCoordsTraslado != null && !jsonCoordsTraslado.isEmpty()) ? jsonCoordsTraslado : "[]";
+
+            // Se envían los arreglos reales a JavaScript tal como indica la sección 4.5 del apunte
+            String script = String.format(Locale.US, "trazarRutasCompletas(%f, %f, %f, %f, %f, %f, %s, %s);", 
+                latM, lonM, latO, lonO, latD, lonD, acercamiento, traslado);
+            webEngine.executeScript(script);
+        }
+    }
+    public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD, String jsArrayCoordenadasTraslado) {
+        if (cargado) {
+            // Si no pasamos puntos viales, usa un array vacío []
+            String coords = (jsArrayCoordenadasTraslado != null && !jsArrayCoordenadasTraslado.isEmpty()) 
+                            ? jsArrayCoordenadasTraslado : "[]";
+
+            // Enviamos los datos a la función JavaScript con la geometría real de las calles
+            String script = String.format(Locale.US, "trazarRutasCompletas(%f, %f, %f, %f, %f, %f, [], %s);", 
+                latM, lonM, latO, lonO, latD, lonD, coords);
             webEngine.executeScript(script);
         }
     }

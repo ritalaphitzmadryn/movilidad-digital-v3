@@ -192,7 +192,14 @@ public class VentanaPrincipalController implements Initializable {
 
             // 5. Enviar instrucciones al mapa para dibujar acercamiento (azul) y traslado (verde)
             if (visualizadorMapa != null) {
-                visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino);
+                // Creamos un string con una curva intermedia para simular las calles de Puerto Madryn
+                String geometriaCalleSimulada = String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]",
+                    latOrigen, lonOrigen,
+                    (latOrigen + latDestino) / 2 + 0.002, (lonOrigen + lonDestino) / 2 - 0.002,
+                    latDestino, lonDestino
+                );
+
+                visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
             }
 
         } catch (Exception e) {
