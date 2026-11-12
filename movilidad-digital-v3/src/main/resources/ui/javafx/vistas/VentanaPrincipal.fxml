@@ -30,21 +30,26 @@
    <left>
       <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #1b5e20; -fx-padding: 15;" BorderPane.alignment="CENTER">
          <children>
+         
             <Label style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;" text="Panel de Control" />
             
             <Label style="-fx-text-fill: white;" text="Tipo de Usuario:" />
             <ComboBox fx:id="cbTipoUsuario" maxWidth="Infinity" promptText="Seleccionar perfil..." />
             
+            <!-- ORIGEN: Solo botón y etiqueta informativa -->
             <Label style="-fx-text-fill: white;" text="Origen:" />
-            <ComboBox fx:id="cbOrigen" maxWidth="Infinity" promptText="Seleccione origen..." />
-            
+            <Button fx:id="btnSeleccionarOrigen" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Origen en Mapa" />
+            <Label fx:id="lblOrigenInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
+
+            <!-- DESTINO: Solo botón y etiqueta informativa -->
             <Label style="-fx-text-fill: white;" text="Destino:" />
-            <ComboBox fx:id="cbDestino" maxWidth="Infinity" promptText="Seleccione destino..." />
+            <Button fx:id="btnSeleccionarDestino" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Destino en Mapa" />
+            <Label fx:id="lblDestinoInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
             
             <Label style="-fx-text-fill: white;" text="Tipo de Servicio:" />
             <ComboBox fx:id="cbTipoServicio" maxWidth="Infinity" />
             
-            <!-- Botón adaptado al ancho del panel con colores acordes al verde -->
+            <!-- Botón de solicitar viaje -->
             <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
             
             <!-- Etiqueta para mostrar los resultados en pantalla -->

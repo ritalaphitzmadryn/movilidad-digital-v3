@@ -1,142 +1,121 @@
 package md.ui.impl.javafx.controller;
 
+import java.net.URL;
 import java.util.List;
-import javafx.scene.control.Label;
-import md.logica.GestorMovilidad; 
-import md.modelo.*;
-import md.aplicacion.*;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
-import javafx.scene.web.WebEngine;
+import javafx.scene.control.Label;
 import javafx.scene.web.WebView;
-import java.net.URL;
-import java.time.LocalDateTime;
-import java.util.Locale;
-import java.util.ResourceBundle;
-
-// Importamos la interfaz y la implementación concreta del servicio de rutas
+import md.aplicacion.Aplicacion;
+import md.logica.GestorMovilidad;
+import md.modelo.CategoriaVehiculo;
+import md.modelo.Conductor;
+import md.modelo.Servicio;
+import md.modelo.TipoServicio;
+import md.modelo.TipoVehiculo;
+import md.modelo.Usuario;
 import md.rutas.api.IRutasService;
 import md.rutas.impl.IRutasServiceImpl;
+import md.ui.impl.javafx.map.VisualizadorRutasLeaflet;
 
 public class VentanaPrincipalController implements Initializable {
 	
-    @FXML
-    private Label lblResultadoViaje; 
+    @FXML private Label lblResultadoViaje; 
+    @FXML private Label lblOrigenInfo;
+    @FXML private Label lblDestinoInfo;
     
-    @FXML
-    private ComboBox<String> cbTipoUsuario; // Selector verde de perfil
-
-    @FXML
-    private ComboBox<String> cbOrigen;
-
-    @FXML
-    private ComboBox<String> cbDestino;
-
-    @FXML
-    private ComboBox<String> cbTipoServicio;
-
-    @FXML
-    private Button btnSolicitar;
-
-    @FXML
-    public WebView mapWebView;
-
-    public WebEngine webEngine;
+    @FXML private ComboBox<String> cbTipoUsuario;
+    @FXML private ComboBox<String> cbTipoServicio;
     
-    // Instanciamos directamente nuestra implementación concreta
+    @FXML private Button btnSolicitar;
+    @FXML private Button btnPincharOrigen;
+    @FXML private Button btnPincharDestino;
+    @FXML private WebView mapWebView; 
+
+    private VisualizadorRutasLeaflet visualizadorMapa;
     private IRutasService rutasService = new IRutasServiceImpl();
 
-    private void actualizarTamanoMapa() {
-        if (webEngine != null) {
-            javafx.application.Platform.runLater(() -> {
-                try {
-                    webEngine.executeScript(
-                        "if (typeof actualizarTamanoMapa === 'function') {" +
-                        "    actualizarTamanoMapa();" +
-                        "}"
-                    );
-                } catch (Exception e) {
-                    System.err.println(
-                        "Error al actualizar el tamaño del mapa: " + e.getMessage()
-                    );
-                }
-            });
-        }
-    }
+    // Coordenadas iniciales por defecto en Puerto Madryn
+    private double latOrigen = -42.7692;
+    private double lonOrigen = -65.0385;
+    private double latDestino = -42.7480;
+    private double lonDestino = -65.0310;
+    
+    private boolean origenSeleccionado = false;
+    private boolean destinoSeleccionado = false;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Inicializamos el servicio de rutas de forma explícita
         this.rutasService = new IRutasServiceImpl();
 
-        // 1. Cargar las opciones del ComboBox de Tipo de Usuario
         if (cbTipoUsuario != null) {
             cbTipoUsuario.getItems().addAll("Cliente (Pasajero)", "Conductor");
             cbTipoUsuario.getSelectionModel().selectFirst();
         }
 
-        // 2. Cargar las opciones del ComboBox de tipo de servicio
         if (cbTipoServicio != null) {
             cbTipoServicio.getItems().addAll("Económico", "Standard", "Confort", "VIP");
             cbTipoServicio.getSelectionModel().selectFirst();
         }
         
-        // 3. Cargar las opciones completas en los ComboBox de Origen y Destino
-        if (cbOrigen != null && cbDestino != null) {
-            ObservableList<String> ubicaciones = FXCollections.observableArrayList(
-                "Municipalidad de Puerto Madryn",
-                "Puerto Almirante Brown / Storni",
-                "Universidad del Chubut (UDC)",
-                "Universidad Tecnológica Nacional (UTN)",
-                "Plaza San Martín",
-                "Terminal de Ómnibus",
-                "Ecocentro",
-                "Muelle Luis Piedra Buena",
-                "Universidad (UNPSJB)",
-                "Parque Industrial",
-                "Supermercado La Anónima",
-                "Hipermercado Changomás",
-                "Cine Teatro Auditorium",
-                "Escuela N° 728",
-                "Escuela N° 7707",
-                "Polideportivo Municipal"
-            );
-            
-            cbOrigen.setItems(ubicaciones);
-            cbDestino.setItems(ubicaciones);
-            
-            cbOrigen.getSelectionModel().selectFirst(); 
-            if (ubicaciones.size() > 1) {
-                cbDestino.getSelectionModel().select(1); 
-            }
-        }
-        
-        // 4. Configuración del mapa (WebView)
+        // Inicializar el Visualizador pasando mapWebView directamente
         if (mapWebView != null) {
-            webEngine = mapWebView.getEngine();
-            URL mapUrl = getClass().getResource("/ui/map/mapa.html");
+            visualizadorMapa = new VisualizadorRutasLeaflet(mapWebView);
 
-            if (mapUrl != null) {
-                mapWebView.widthProperty().addListener((obs, oldVal, newVal) -> actualizarTamanoMapa());
-                mapWebView.heightProperty().addListener((obs, oldVal, newVal) -> actualizarTamanoMapa());
-
-                webEngine.getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
-                    if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
-                        actualizarTamanoMapa();
+            // Configurar el listener de clics devueltos por el mapa (Sección 4.9 del apunte)
+            visualizadorMapa.configurarSeleccion((tipo, coords) -> {
+                if ("origen".equals(tipo)) {
+                    latOrigen = coords[0];
+                    lonOrigen = coords[1];
+                    origenSeleccionado = true;
+                    visualizadorMapa.mostrarMarcador("origen", latOrigen, lonOrigen);
+                    
+                    if (lblOrigenInfo != null) {
+                        lblOrigenInfo.setText(String.format(Locale.US, "Lat: %.4f, Lon: %.4f", latOrigen, lonOrigen));
                     }
-                });
-
-                webEngine.load(mapUrl.toExternalForm());
-            } else {
-                System.err.println("No se pudo encontrar el archivo mapa.html");
-            }
+                    System.out.println("Origen fijado desde el mapa: " + latOrigen + ", " + lonOrigen);
+                    
+                    // Activar automáticamente la selección de destino para el segundo clic
+                    visualizadorMapa.activarSeleccion("destino");
+                } else if ("destino".equals(tipo)) {
+                    latDestino = coords[0];
+                    lonDestino = coords[1];
+                    destinoSeleccionado = true;
+                    visualizadorMapa.mostrarMarcador("destino", latDestino, lonDestino);
+                    
+                    if (lblDestinoInfo != null) {
+                        lblDestinoInfo.setText(String.format(Locale.US, "Lat: %.4f, Lon: %.4f", latDestino, lonDestino));
+                    }
+                    System.out.println("Destino fijado desde el mapa: " + latDestino + ", " + lonDestino);
+                }
+            });
         }
             
-        // 5. Vincular el botón
+        // Vincular los botones de pinchar en el mapa
+        if (btnPincharOrigen != null) {
+            btnPincharOrigen.setOnAction(e -> {
+                if (visualizadorMapa != null) {
+                    visualizadorMapa.activarSeleccion("origen");
+                    System.out.println("Modo selección activado: Haga clic en el mapa para marcar el Origen.");
+                }
+            });
+        }
+
+        if (btnPincharDestino != null) {
+            btnPincharDestino.setOnAction(e -> {
+                if (visualizadorMapa != null) {
+                    visualizadorMapa.activarSeleccion("destino");
+                    System.out.println("Modo selección activado: Haga clic en el mapa para marcar el Destino.");
+                }
+            });
+        }
+
         if (btnSolicitar != null) {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
         }
@@ -144,165 +123,81 @@ public class VentanaPrincipalController implements Initializable {
 
     @FXML
     private void handleSolicitarViaje() {
-        // 1. Obtener los valores seleccionados de los ComboBox
-        String tipoUsuarioSeleccionado = cbTipoUsuario != null ? cbTipoUsuario.getValue() : "Cliente (Pasajero)";
-        boolean esConductor = tipoUsuarioSeleccionado.contains("Conductor");
-
-        String origen = cbOrigen != null ? cbOrigen.getValue() : null;
-        String destino = cbDestino != null ? cbDestino.getValue() : null;
-        String tipoServicio = cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard";
-        
-        // 2. Validaciones básicas de seguridad
-        if (origen == null || origen.isEmpty() || destino == null || destino.isEmpty()) {
-            System.err.println("Error: Debe seleccionar un origen y un destino.");
-            return;
-        }
-        
-        if (origen.equals(destino)) {
-            System.err.println("Error: El origen y el destino no pueden ser el mismo lugar.");
-            return;
-        }
-        
         try {
-            // 3. Obtenemos el gestor de movilidad digital compartido
             GestorMovilidad gestor = Aplicacion.getGestor();
-            
             if (gestor == null) {
                 System.err.println("Error: El GestorMovilidad no ha sido inicializado.");
                 return;
             }
-        
-            // 4. Obtener las coordenadas geográficas
-            double[] coordsOrigen = obtenerCoordenadas(origen);
-            double[] coordsDestino = obtenerCoordenadas(destino);
-            
-            double distanciaKm = 0.0;
+
+            // 1. Calcular distancia y detalle de la ruta principal (Origen -> Destino)
+            double distanciaViajeKm = 0.0;
             String detalleRuta = "";
-            
-            // 5. Utilizar IRutasService para calcular la ruta
             if (rutasService != null) {
-                detalleRuta = rutasService.calcularRuta(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
-                distanciaKm = rutasService.calcularDistanciaKm(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
+                distanciaViajeKm = rutasService.calcularDistanciaKm(latOrigen, lonOrigen, latDestino, lonDestino);
+                detalleRuta = rutasService.calcularRuta(latOrigen, lonOrigen, latDestino, lonDestino);
             }
-            
-            // Estimamos el tiempo en minutos (asumiendo velocidad promedio urbana de 30 km/h)
-            double tiempoMinutos = (distanciaKm / 30.0) * 60.0;
 
-            // Instanciamos el Servicio con sus 7 parámetros para calcular el costo real
-            Servicio servicioEjemplo = new Servicio(
-                tipoServicio, 
-                TipoServicio.PASAJEROS, 
-                TipoVehiculo.AUTO, 
-                CategoriaVehiculo.ESTANDAR, 
-                100.0,  // Tarifa base
-                50.0,   // Precio por km
-                10.0    // Precio por minuto
-            ); 
+            // 2. Buscar el conductor / móvil más cercano disponible
+            double menorDistanciaMovil = Double.MAX_VALUE;
+            double latMovil = latOrigen - 0.01; 
+            double lonMovil = lonOrigen - 0.01;
+            String patenteMovil = "AA-123-BB";
 
-            // Calculamos el costo utilizando tu método de dominio
-            double costoTotal = servicioEjemplo.calcularCosto(distanciaKm, tiempoMinutos);
-            
-            // 6. Buscar el usuario adecuado (Cliente o Conductor) en el gestor según la interfaz
-            List<Usuario> usuarioList = gestor.obtenerUsuarios();
-            Usuario usuarioEncontrado = null;
-            
-            for (Usuario u : usuarioList) {
-                if (esConductor) {
-                    if (u.getConductor() != null) {
-                        usuarioEncontrado = u;
-                        break;
-                    }
-                } else {
-                    if (u.getCliente() != null) {
-                        usuarioEncontrado = u;
-                        break;
+            List<Usuario> usuarios = gestor.obtenerUsuarios();
+            for (Usuario u : usuarios) {
+                if (u.getConductor() != null) {
+                    Conductor c = u.getConductor();
+                    double cLat = latOrigen - 0.015; 
+                    double cLon = lonOrigen - 0.015;
+                    
+                    double dist = rutasService != null ? 
+                        rutasService.calcularDistanciaKm(cLat, cLon, latOrigen, lonOrigen) :
+                        Math.sqrt(Math.pow(cLat - latOrigen, 2) + Math.pow(cLon - lonOrigen, 2)) * 111.0;
+
+                    if (dist < menorDistanciaMovil) {
+                        menorDistanciaMovil = dist;
+                        latMovil = cLat;
+                        lonMovil = cLon;
+                        patenteMovil = c.getVehiculoActivo() != null ? c.getVehiculoActivo().getPatente() : "Móvil Genérico";
                     }
                 }
             }
-            
-            if (usuarioEncontrado != null) {
-                // Creamos objetos de ubicación
-                Ubicacion origenObj = new Ubicacion(origen, coordsOrigen[0], coordsOrigen[1]);
-                Ubicacion destinoObj = new Ubicacion(destino, coordsDestino[0], coordsDestino[1]);
 
-                // Registramos el viaje en el gestor con el usuario correspondiente
-                Viaje nuevoViaje = gestor.solicitarViaje(usuarioEncontrado, servicioEjemplo, origenObj, destinoObj, LocalDateTime.now());
-                
-                System.out.println("¡Viaje procesado con éxito! Perfil activo: " + 
-                                   (esConductor ? "Conductor" : "Cliente") + 
-                                   " | ID de Viaje: " + nuevoViaje.getId());
-            } else {
-                System.out.println("Aviso: No se encontró un perfil de " + (esConductor ? "conductor" : "cliente") + " registrado en el sistema.");
-            }
+            // 3. Costo y tiempos estimados
+            double tiempoViajeMin = (distanciaViajeKm / 30.0) * 60.0;
+            double tiempoAcercamientoMin = (menorDistanciaMovil / 30.0) * 60.0;
 
-            // 7. Mostrar resultados en la etiqueta visual (`lblResultadoViaje`) y en consola
+            Servicio servicioEjemplo = new Servicio(
+                cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard", 
+                TipoServicio.PASAJEROS, TipoVehiculo.AUTO, CategoriaVehiculo.ESTANDAR, 
+                100.0, 50.0, 10.0
+            ); 
+            double costoTotal = servicioEjemplo.calcularCosto(distanciaViajeKm, tiempoViajeMin);
+
+            // 4. Mostrar información en la etiqueta inferior (`lblResultadoViaje`)
             String resultadoTexto = String.format(
                 Locale.US, 
-                "Perfil: %s\nDistancia: %.2f km\nTiempo aprox: %.0f min\nCosto Total: $%.2f\n%s", 
-                (esConductor ? "Conductor" : "Cliente"),
-                distanciaKm, 
-                tiempoMinutos, 
-                costoTotal, 
-                detalleRuta
+                "Móvil más cercano: %s (a %.2f km | ~%.0f min)\n" +
+                "Distancia del viaje: %.2f km (~%.0f min)\n" +
+                "Costo Total: $%.2f\n%s", 
+                patenteMovil, menorDistanciaMovil, tiempoAcercamientoMin,
+                distanciaViajeKm, tiempoViajeMin, 
+                costoTotal, detalleRuta
             );
             
             if (lblResultadoViaje != null) {
                 lblResultadoViaje.setText(resultadoTexto);
             }
-            System.out.println(resultadoTexto);
 
-         // 8. Trazar ruta en el mapa JavaScript (WebView)
-            if (webEngine != null) {
-                String script = String.format(Locale.US, "trazarRuta(%f, %f, %f, %f);", 
-                    coordsOrigen[0], coordsOrigen[1], 
-                    coordsDestino[0], coordsDestino[1]
-                );
-                webEngine.executeScript(script);
+            // 5. Enviar instrucciones al mapa para dibujar acercamiento (azul) y traslado (verde)
+            if (visualizadorMapa != null) {
+                visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino);
             }
-        }
-        catch (Exception e) {
-            System.err.println("Error al procesar el viaje en el gestor: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 
-    // Método auxiliar fuera de handleSolicitarViaje
-    private double[] obtenerCoordenadas(String lugar) {
-        switch (lugar) {
-            case "Municipalidad de Puerto Madryn": 
-                return new double[]{-42.7692, -65.0385};
-            case "Puerto Almirante Brown / Storni": 
-                return new double[]{-42.7480, -65.0310};
-            case "Universidad del Chubut (UDC)": 
-                return new double[]{-42.7820, -65.0420};
-            case "Universidad Tecnológica Nacional (UTN)": 
-                return new double[]{-42.7735, -65.0610};
-            case "Plaza San Martín": 
-                return new double[]{-42.7685, -65.0350};
-            case "Terminal de Ómnibus": 
-                return new double[]{-42.7710, -65.0700};
-            case "Ecocentro": 
-                return new double[]{-42.7915, -65.0220};
-            case "Muelle Luis Piedra Buena": 
-                return new double[]{-42.7575, -65.0350};
-            case "Universidad (UNPSJB)": 
-                return new double[]{-42.7750, -65.0500};
-            case "Parque Industrial": 
-                return new double[]{-42.7950, -65.0800};
-            case "Supermercado La Anónima": 
-                return new double[]{-42.7640, -65.0430};
-            case "Hipermercado Changomás": 
-                return new double[]{-42.7720, -65.0650};
-            case "Cine Teatro Auditorium": 
-                return new double[]{-42.7670, -65.0360};
-            case "Escuela N° 728": 
-                return new double[]{-42.7660, -65.0500};
-            case "Escuela N° 7707": 
-                return new double[]{-42.7780, -65.0550};
-            case "Polideportivo Municipal": 
-                return new double[]{-42.7610, -65.0720};
-            default: 
-                return new double[]{-42.7692, -65.0385}; 
+        } catch (Exception e) {
+            System.err.println("Error al procesar el viaje: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

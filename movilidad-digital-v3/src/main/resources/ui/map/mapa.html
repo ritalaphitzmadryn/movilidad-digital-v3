@@ -2,10 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet/dist/leaflet.css" />
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         html, body {
             width: 100%;
@@ -14,23 +11,19 @@
             padding: 0;
             overflow: hidden;
         }
-
         #map {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+        /* Clase para cambiar el cursor al pinchar el mapa */
+        .crosshair-cursor-enabled {
+            cursor: crosshair !important;
         }
     </style>
 </head>
-
 <body>
-
     <div id="map"></div>
-	<script>
-	        window.L_DISABLE_3D = true;
-	    </script>
+    <script>window.L_DISABLE_3D = true;</script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
     <script>
@@ -42,62 +35,93 @@
 
         L.tileLayer(
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }
+            { maxZoom: 19, attribution: '© OpenStreetMap contributors' }
         ).addTo(map);
 
         var markerOrigen = null;
         var markerDestino = null;
-        var polylineRuta = null;
+        var markerMovil = null;
+        var grupoRutas = L.layerGroup().addTo(map);
 
-		function trazarRuta(latOrigen, lonOrigen,
-		                            latDestino, lonDestino) {
+        var modoSeleccion = null; // 'origen' o 'destino'
 
-		            if (markerOrigen) {
-		                map.removeLayer(markerOrigen);
-		            }
+        // Activar modo selección desde Java
+        function activarSeleccion(tipo) {
+            modoSeleccion = tipo;
+            var container = map.getContainer();
+            if (tipo) {
+                container.classList.add('crosshair-cursor-enabled');
+            } else {
+                container.classList.remove('crosshair-cursor-enabled');
+            }
+        }
 
-		            if (markerDestino) {
-		                map.removeLayer(markerDestino);
-		            }
+        // Evento de clic en el mapa para capturar coordenadas
+        map.on('click', function(e) {
+            if (!modoSeleccion) return;
 
-		            if (polylineRuta) {
-		                map.removeLayer(polylineRuta);
-		            }
+            var lat = e.latlng.lat;
+            var lon = e.latlng.lng;
+            var tipoActual = modoSeleccion;
 
-		            // Creamos explícitamente los puntos con L.latLng para blindar el orden y formato
-		            var origenLatLng = L.latLng(latOrigen, lonOrigen);
-		            var destinoLatLng = L.latLng(latDestino, lonDestino);
+            // Desactivar cursor de selección
+            activarSeleccion(null);
 
-		            markerOrigen = L.marker(origenLatLng)
-		                .addTo(map)
-		                .bindPopup("<b>Origen del Viaje</b>");
+            // Comunicar a Java mediante el puente (javaBridge)
+            if (window.javaBridge && typeof window.javaBridge.seleccionarPunto === 'function') {
+                window.javaBridge.seleccionarPunto(tipoActual, lat, lon);
+            }
+        });
 
-		            markerDestino = L.marker(destinoLatLng)
-		                .addTo(map)
-		                .bindPopup("<b>Destino del Viaje</b>");
+        // Mostrar marcador individual (al hacer clic o cargar)
+        function mostrarMarcadorSeleccion(tipo, lat, lon) {
+            var latLng = L.latLng(lat, lon);
+            if (tipo === 'origen') {
+                if (markerOrigen) map.removeLayer(markerOrigen);
+                markerOrigen = L.marker(latLng).addTo(map).bindPopup("<b>Origen Seleccionado</b>").openPopup();
+            } else if (tipo === 'destino') {
+                if (markerDestino) map.removeLayer(markerDestino);
+                markerDestino = L.marker(latLng).addTo(map).bindPopup("<b>Destino Seleccionado</b>").openPopup();
+            }
+        }
 
-		            var latlngs = [
-		                origenLatLng,
-		                destinoLatLng
-		            ];
+        // Trazar las dos rutas descritas en el apunte: Acercamiento (azul) y Traslado (verde)
+        function trazarRutasCompletas(latMovil, lonMovil, latOrig, lonOrig, latDest, lonDest, coordsAcercamiento, coordsTraslado) {
+            grupoRutas.clearLayers();
 
-		            polylineRuta = L.polyline(latlngs, {
-		                color: '#2a5298',
-		                weight: 5,
-		                opacity: 0.8
-		            }).addTo(map);
+            if (markerOrigen) map.removeLayer(markerOrigen);
+            if (markerDestino) map.removeLayer(markerDestino);
+            if (markerMovil) map.removeLayer(markerMovil);
 
-		            map.fitBounds(L.latLngBounds(latlngs), {
-		                padding: [50, 50]
-		            });
+            var o = L.latLng(latOrig, lonOrig);
+            var d = L.latLng(latDest, lonDest);
+            var m = L.latLng(latMovil, lonMovil);
 
-		            map.invalidateSize(true);
-		        }
+            markerOrigen = L.marker(o).addTo(map).bindPopup("<b>Origen</b>");
+            markerDestino = L.marker(d).addTo(map).bindPopup("<b>Destino</b>");
+            markerMovil = L.marker(m, {
+                icon: L.divIcon({className: 'movil-icon', html: '🚗', iconSize: [24, 24]})
+            }).addTo(map).bindPopup("<b>Móvil Más Cercano</b>");
 
-        // Función que puede invocarse desde JavaFX
+            // Dibujar acercamiento (Azul)
+            if (coordsAcercamiento && coordsAcercamiento.length > 0) {
+                L.polyline(coordsAcercamiento, { color: '#1763c0', weight: 4, opacity: 0.8 }).addTo(grupoRutas);
+            } else {
+                L.polyline([m, o], { color: '#1763c0', weight: 3, dashArray: '5, 5' }).addTo(grupoRutas);
+            }
+
+            // Dibujar traslado (Verde)
+            if (coordsTraslado && coordsTraslado.length > 0) {
+                L.polyline(coordsTraslado, { color: '#149566', weight: 5, opacity: 0.9 }).addTo(grupoRutas);
+            } else {
+                L.polyline([o, d], { color: '#149566', weight: 5 }).addTo(grupoRutas);
+            }
+
+            var bounds = L.latLngBounds([o, d, m]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+            map.invalidateSize(true);
+        }
+
         function actualizarTamanoMapa() {
             map.invalidateSize(true);
         }
@@ -105,9 +129,6 @@
         window.addEventListener('resize', function() {
             actualizarTamanoMapa();
         });
-
     </script>
-
 </body>
 </html>
-```
