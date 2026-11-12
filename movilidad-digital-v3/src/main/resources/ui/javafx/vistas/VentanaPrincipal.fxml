@@ -38,12 +38,12 @@
             
             <!-- ORIGEN: Solo botón y etiqueta informativa -->
             <Label style="-fx-text-fill: white;" text="Origen:" />
-            <Button fx:id="btnSeleccionarOrigen" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Origen en Mapa" />
+            <Button fx:id="btnPincharOrigen" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Origen en Mapa" />
             <Label fx:id="lblOrigenInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
 
             <!-- DESTINO: Solo botón y etiqueta informativa -->
             <Label style="-fx-text-fill: white;" text="Destino:" />
-            <Button fx:id="btnSeleccionarDestino" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Destino en Mapa" />
+            <Button fx:id="btnPincharDestino" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Destino en Mapa" />
             <Label fx:id="lblDestinoInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
             
             <Label style="-fx-text-fill: white;" text="Tipo de Servicio:" />
