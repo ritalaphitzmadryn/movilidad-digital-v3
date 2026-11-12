@@ -36,6 +36,7 @@ public class VentanaPrincipalController implements Initializable {
     @FXML private Button btnSolicitar;
     @FXML private Button btnPincharOrigen;
     @FXML private Button btnPincharDestino;
+    @FXML private Button btnLimpiar; // <--- Botón de limpiar vinculado con FXML
     @FXML private WebView mapWebView; 
 
     private VisualizadorRutasLeaflet visualizadorMapa;
@@ -116,8 +117,31 @@ public class VentanaPrincipalController implements Initializable {
             });
         }
 
+        // Vincular el botón de solicitar viaje
         if (btnSolicitar != null) {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
+        }
+
+        // Vincular el botón de limpiar selecciones
+        if (btnLimpiar != null) {
+            btnLimpiar.setOnAction(e -> {
+                if (visualizadorMapa != null) {
+                    visualizadorMapa.limpiarSeleccionYRutas();
+                }
+                if (lblOrigenInfo != null) {
+                    lblOrigenInfo.setText("No seleccionado");
+                }
+                if (lblDestinoInfo != null) {
+                    lblDestinoInfo.setText("No seleccionado");
+                }
+                if (lblResultadoViaje != null) {
+                    lblResultadoViaje.setText("");
+                }
+                
+                origenSeleccionado = false;
+                destinoSeleccionado = false;
+                System.out.println("Mapa y selecciones limpiadas correctamente.");
+            });
         }
     }
 
@@ -192,7 +216,6 @@ public class VentanaPrincipalController implements Initializable {
 
             // 5. Enviar instrucciones al mapa para dibujar acercamiento (azul) y traslado (verde)
             if (visualizadorMapa != null) {
-                // Creamos un string con una curva intermedia para simular las calles de Puerto Madryn
                 String geometriaCalleSimulada = String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]",
                     latOrigen, lonOrigen,
                     (latOrigen + latDestino) / 2 + 0.002, (lonOrigen + lonDestino) / 2 - 0.002,

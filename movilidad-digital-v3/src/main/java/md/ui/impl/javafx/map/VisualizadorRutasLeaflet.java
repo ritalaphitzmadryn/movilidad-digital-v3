@@ -93,4 +93,15 @@ public class VisualizadorRutasLeaflet {
             });
         }
     }
+    public void limpiarSeleccionYRutas() {
+        if (cargado) {
+            try {
+                webEngine.executeScript("limpiarMapaCompleto();");
+            } catch (Exception e) {
+                System.err.println("Error al limpiar el mapa: " + e.getMessage());
+            }
+        } else {
+            System.out.println("El mapa aún se está cargando.");
+        }
+    }
 }

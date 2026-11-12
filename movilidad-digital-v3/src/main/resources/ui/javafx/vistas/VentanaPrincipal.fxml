@@ -51,7 +51,8 @@
             
             <!-- Botón de solicitar viaje -->
             <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
-            
+            <!-- Botón para limpiar selecciones y rutas -->
+			<Button fx:id="btnLimpiar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="🗑️ Limpiar Selección" />
             <!-- Etiqueta para mostrar los resultados en pantalla -->
             <Label fx:id="lblResultadoViaje" wrapText="true" style="-fx-text-fill: #e8f5e9; -fx-font-size: 13px;" />        
          </children>
