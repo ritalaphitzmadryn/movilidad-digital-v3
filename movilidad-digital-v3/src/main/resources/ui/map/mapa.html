@@ -15,7 +15,6 @@
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
         }
-        /* Clase para cambiar el cursor al pinchar el mapa */
         .crosshair-cursor-enabled {
             cursor: crosshair !important;
         }
@@ -25,7 +24,7 @@
     <div id="map"></div>
     <script>window.L_DISABLE_3D = true;</script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-	
+    
     <script>
         var map = L.map('map', {
             zoomControl: true,
@@ -42,45 +41,71 @@
         var markerDestino = null;
         var markerMovil = null;
         var grupoRutas = L.layerGroup().addTo(map);
+        var modoSeleccion = null;
 
-        var modoSeleccion = null; // 'origen' o 'destino'
+        function actualizarTamanoMapa() {
+            if (map) {
+                map.invalidateSize(true);
+            }
+        }
 
-        // Activar modo selección desde Java
+        // Forzar recálculo estricto al terminar el zoom
+        map.on('zoomend', function() {
+            setTimeout(function() {
+                map.invalidateSize(true);
+                console.log("Mapa redimensionado tras zoom. Zoom actual:", map.getZoom());
+            }, 150);
+        });
+
+        window.addEventListener('resize', function() {
+            actualizarTamanoMapa();
+        });
+                
         function activarSeleccion(tipo) {
             modoSeleccion = tipo;
             var container = map.getContainer();
             if (tipo) {
                 container.classList.add('crosshair-cursor-enabled');
+                console.log("Modo selección activado en JS para:", tipo);
             } else {
                 container.classList.remove('crosshair-cursor-enabled');
             }
-		
+            actualizarTamanoMapa();
         }
-		function limpiarMapaCompleto() {
-		            grupoRutas.clearLayers();
-		            if (markerOrigen) { map.removeLayer(markerOrigen); markerOrigen = null; }
-		            if (markerDestino) { map.removeLayer(markerDestino); markerDestino = null; }
-		            if (markerMovil) { map.removeLayer(markerMovil); markerMovil = null; }
-		        }
 
-        // Evento de clic en el mapa para capturar coordenadas
+        function limpiarMapaCompleto() {
+            grupoRutas.clearLayers();
+            if (markerOrigen) { map.removeLayer(markerOrigen); markerOrigen = null; }
+            if (markerDestino) { map.removeLayer(markerDestino); markerDestino = null; }
+            if (markerMovil) { map.removeLayer(markerMovil); markerMovil = null; }
+            modoSeleccion = null;
+            var container = map.getContainer();
+            container.classList.remove('crosshair-cursor-enabled');
+            actualizarTamanoMapa();
+        }
+
+        // Evento de clic con registro en consola
         map.on('click', function(e) {
-            if (!modoSeleccion) return;
+            console.log("Clic detectado en el mapa. Modo actual:", modoSeleccion);
+            if (!modoSeleccion) {
+                console.log("Clic ignorado: no hay un modo de selección activo.");
+                return;
+            }
 
             var lat = e.latlng.lat;
             var lon = e.latlng.lng;
             var tipoActual = modoSeleccion;
 
-            // Desactivar cursor de selección
             activarSeleccion(null);
 
-            // Comunicar a Java mediante el puente (javaBridge)
             if (window.javaBridge && typeof window.javaBridge.seleccionarPunto === 'function') {
+                console.log("Enviando punto a Java:", tipoActual, lat, lon);
                 window.javaBridge.seleccionarPunto(tipoActual, lat, lon);
+            } else {
+                console.error("Error: javaBridge no está disponible.");
             }
         });
 
-        // Mostrar marcador individual (al hacer clic o cargar)
         function mostrarMarcadorSeleccion(tipo, lat, lon) {
             var latLng = L.latLng(lat, lon);
             if (tipo === 'origen') {
@@ -90,9 +115,9 @@
                 if (markerDestino) map.removeLayer(markerDestino);
                 markerDestino = L.marker(latLng).addTo(map).bindPopup("<b>Destino Seleccionado</b>").openPopup();
             }
+            actualizarTamanoMapa();
         }
 
-        // Trazar las dos rutas descritas en el apunte: Acercamiento (azul) y Traslado (verde)
         function trazarRutasCompletas(latMovil, lonMovil, latOrig, lonOrig, latDest, lonDest, coordsAcercamiento, coordsTraslado) {
             grupoRutas.clearLayers();
 
@@ -110,14 +135,12 @@
                 icon: L.divIcon({className: 'movil-icon', html: '🚗', iconSize: [24, 24]})
             }).addTo(map).bindPopup("<b>Móvil Más Cercano</b>");
 
-            // Dibujar acercamiento (Azul)
             if (coordsAcercamiento && coordsAcercamiento.length > 0) {
                 L.polyline(coordsAcercamiento, { color: '#1763c0', weight: 4, opacity: 0.8 }).addTo(grupoRutas);
             } else {
                 L.polyline([m, o], { color: '#1763c0', weight: 3, dashArray: '5, 5' }).addTo(grupoRutas);
             }
 
-            // Dibujar traslado (Verde)
             if (coordsTraslado && coordsTraslado.length > 0) {
                 L.polyline(coordsTraslado, { color: '#149566', weight: 5, opacity: 0.9 }).addTo(grupoRutas);
             } else {
@@ -126,16 +149,8 @@
 
             var bounds = L.latLngBounds([o, d, m]);
             map.fitBounds(bounds, { padding: [50, 50] });
-            map.invalidateSize(true);
-        }
-
-        function actualizarTamanoMapa() {
-            map.invalidateSize(true);
-        }
-
-        window.addEventListener('resize', function() {
             actualizarTamanoMapa();
-        });
+        }
     </script>
 </body>
 </html>
