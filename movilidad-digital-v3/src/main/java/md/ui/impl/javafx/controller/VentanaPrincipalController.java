@@ -16,12 +16,13 @@ import md.aplicacion.Aplicacion;
 import md.logica.GestorMovilidad;
 import md.modelo.CategoriaVehiculo;
 import md.modelo.Conductor;
+import md.modelo.RolUsuario;
 import md.modelo.Servicio;
 import md.modelo.TipoServicio;
 import md.modelo.TipoVehiculo;
 import md.modelo.Usuario;
 import md.rutas.api.IRutasService;
-import md.rutas.impl.IRutasServiceImpl;
+import md.rutas.impl.RutasServiceImpl;
 import md.ui.impl.javafx.map.VisualizadorRutasLeaflet;
 
 public class VentanaPrincipalController implements Initializable {
@@ -29,18 +30,24 @@ public class VentanaPrincipalController implements Initializable {
     @FXML private Label lblResultadoViaje; 
     @FXML private Label lblOrigenInfo;
     @FXML private Label lblDestinoInfo;
+    @FXML private Label lblBienvenida; 
     
     @FXML private ComboBox<String> cbTipoUsuario;
-    @FXML private ComboBox<String> cbTipoServicio;
+    @FXML private ComboBox<String> cbTipoServicio; // Para Categoría (Económico, Standard, etc.)
+    
+    // ComboBox para los Enums del diagrama de clases
+    @FXML private ComboBox<TipoServicio> cbTipoServicioEnum; // PASAJEROS, ENVIOS
+    @FXML private ComboBox<TipoVehiculo> cbTipoVehiculo;     // AUTO, MOTO
     
     @FXML private Button btnSolicitar;
     @FXML private Button btnPincharOrigen;
     @FXML private Button btnPincharDestino;
-    @FXML private Button btnLimpiar; // <--- Botón de limpiar vinculado con FXML
+    @FXML private Button btnLimpiar; 
     @FXML private WebView mapWebView; 
 
     private VisualizadorRutasLeaflet visualizadorMapa;
-    private IRutasService rutasService = new IRutasServiceImpl();
+    private IRutasService rutasService = new RutasServiceImpl();
+    private Usuario usuarioActual;
 
     // Coordenadas iniciales por defecto en Puerto Madryn
     private double latOrigen = -42.7692;
@@ -53,23 +60,60 @@ public class VentanaPrincipalController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        this.rutasService = new IRutasServiceImpl();
+        this.rutasService = new RutasServiceImpl();
 
         if (cbTipoUsuario != null) {
             cbTipoUsuario.getItems().addAll("Cliente (Pasajero)", "Conductor");
             cbTipoUsuario.getSelectionModel().selectFirst();
+            
+            // Evento para cambiar el rol desde el ComboBox
+            cbTipoUsuario.setOnAction(event -> {
+                if (usuarioActual != null) {
+                    String seleccion = cbTipoUsuario.getValue();
+                    if ("Conductor".equals(seleccion)) {
+                        if (usuarioActual.getConductor() != null) {
+                            usuarioActual.cambiarRolActivo(RolUsuario.CONDUCTOR);
+                            System.out.println("Rol cambiado a: CONDUCTOR");
+                        } else {
+                            System.out.println("El usuario no tiene perfil de conductor.");
+                            cbTipoUsuario.getSelectionModel().select("Cliente (Pasajero)");
+                        }
+                    } else {
+                        if (usuarioActual.getCliente() != null) {
+                            usuarioActual.cambiarRolActivo(RolUsuario.CLIENTE);
+                            System.out.println("Rol cambiado a: CLIENTE");
+                        } else {
+                            System.out.println("El usuario no tiene perfil de cliente.");
+                            cbTipoUsuario.getSelectionModel().select("Conductor");
+                        }
+                    }
+                }
+            });
         }
 
+        // Poblar ComboBox de Categoría
         if (cbTipoServicio != null) {
             cbTipoServicio.getItems().addAll("Económico", "Standard", "Confort", "VIP");
             cbTipoServicio.getSelectionModel().selectFirst();
+        }
+
+        // Poblar ComboBox para TipoServicio (Enum: PASAJEROS, ENVIOS)
+        if (cbTipoServicioEnum != null) {
+            cbTipoServicioEnum.getItems().addAll(TipoServicio.values());
+            cbTipoServicioEnum.getSelectionModel().selectFirst();
+        }
+
+        // Poblar ComboBox para TipoVehiculo (Enum: AUTO, MOTO)
+        if (cbTipoVehiculo != null) {
+            cbTipoVehiculo.getItems().addAll(TipoVehiculo.values());
+            cbTipoVehiculo.getSelectionModel().selectFirst();
         }
         
         // Inicializar el Visualizador pasando mapWebView directamente
         if (mapWebView != null) {
             visualizadorMapa = new VisualizadorRutasLeaflet(mapWebView);
 
-            // Configurar el listener de clics devueltos por el mapa (Sección 4.9 del apunte)
+            // Configurar el listener de clics devueltos por el mapa
             visualizadorMapa.configurarSeleccion((tipo, coords) -> {
                 if ("origen".equals(tipo)) {
                     latOrigen = coords[0];
@@ -82,7 +126,6 @@ public class VentanaPrincipalController implements Initializable {
                     }
                     System.out.println("Origen fijado desde el mapa: " + latOrigen + ", " + lonOrigen);
                     
-                    // Activar automáticamente la selección de destino para el segundo clic
                     visualizadorMapa.activarSeleccion("destino");
                 } else if ("destino".equals(tipo)) {
                     latDestino = coords[0];
@@ -162,28 +205,36 @@ public class VentanaPrincipalController implements Initializable {
                 detalleRuta = rutasService.calcularRuta(latOrigen, lonOrigen, latDestino, lonDestino);
             }
 
+            // Capturar las selecciones de los nuevos ComboBox de Enums
+            TipoServicio tipoServicioElegido = cbTipoServicioEnum != null ? cbTipoServicioEnum.getValue() : TipoServicio.PASAJEROS;
+            TipoVehiculo tipoVehiculoElegido = cbTipoVehiculo != null ? cbTipoVehiculo.getValue() : TipoVehiculo.AUTO;
+            String categoriaElegida = cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard";
+
             // 2. Buscar el conductor / móvil más cercano disponible
             double menorDistanciaMovil = Double.MAX_VALUE;
-            double latMovil = latOrigen - 0.01; 
-            double lonMovil = lonOrigen - 0.01;
+            double latMovil = latOrigen + 0.01; 
+            double lonMovil = lonOrigen + 0.01;
             String patenteMovil = "AA-123-BB";
 
             List<Usuario> usuarios = gestor.obtenerUsuarios();
-            for (Usuario u : usuarios) {
-                if (u.getConductor() != null) {
-                    Conductor c = u.getConductor();
-                    double cLat = latOrigen - 0.015; 
-                    double cLon = lonOrigen - 0.015;
-                    
-                    double dist = rutasService != null ? 
-                        rutasService.calcularDistanciaKm(cLat, cLon, latOrigen, lonOrigen) :
-                        Math.sqrt(Math.pow(cLat - latOrigen, 2) + Math.pow(cLon - lonOrigen, 2)) * 111.0;
+            if (usuarios != null) {
+                for (Usuario u : usuarios) {
+                    if (u.getConductor() != null) {
+                        Conductor c = u.getConductor();
+                        double cLat = latOrigen + 0.015; 
+                        double cLon = lonOrigen + 0.015;
+                        
+                        // Cálculo corregido (sin saltos de línea erróneos ni guiones perdidos)
+                        double dist = rutasService != null ? 
+                            rutasService.calcularDistanciaKm(cLat, cLon, latOrigen, lonOrigen) :
+                            Math.sqrt(Math.pow(cLat - latOrigen, 2) + Math.pow(cLon - lonOrigen, 2)) * 111.0;
 
-                    if (dist < menorDistanciaMovil) {
-                        menorDistanciaMovil = dist;
-                        latMovil = cLat;
-                        lonMovil = cLon;
-                        patenteMovil = c.getVehiculoActivo() != null ? c.getVehiculoActivo().getPatente() : "Móvil Genérico";
+                        if (dist < menorDistanciaMovil) {
+                            menorDistanciaMovil = dist;
+                            latMovil = cLat;
+                            lonMovil = cLon;
+                            patenteMovil = c.getVehiculoActivo() != null ? c.getVehiculoActivo().getPatente() : "Móvil Genérico";
+                        }
                     }
                 }
             }
@@ -192,9 +243,12 @@ public class VentanaPrincipalController implements Initializable {
             double tiempoViajeMin = (distanciaViajeKm / 30.0) * 60.0;
             double tiempoAcercamientoMin = (menorDistanciaMovil / 30.0) * 60.0;
 
+            // Instanciar el Servicio utilizando los Enums seleccionados en la interfaz
             Servicio servicioEjemplo = new Servicio(
-                cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard", 
-                TipoServicio.PASAJEROS, TipoVehiculo.AUTO, CategoriaVehiculo.ESTANDAR, 
+                categoriaElegida, 
+                tipoServicioElegido, 
+                tipoVehiculoElegido, 
+                CategoriaVehiculo.ESTANDAR, 
                 100.0, 50.0, 10.0
             ); 
             double costoTotal = servicioEjemplo.calcularCosto(distanciaViajeKm, tiempoViajeMin);
@@ -202,9 +256,11 @@ public class VentanaPrincipalController implements Initializable {
             // 4. Mostrar información en la etiqueta inferior (`lblResultadoViaje`)
             String resultadoTexto = String.format(
                 Locale.US, 
+                "Modalidad: %s | Vehículo: %s\n" +
                 "Móvil más cercano: %s (a %.2f km | ~%.0f min)\n" +
                 "Distancia del viaje: %.2f km (~%.0f min)\n" +
                 "Costo Total: $%.2f\n%s", 
+                tipoServicioElegido, tipoVehiculoElegido,
                 patenteMovil, menorDistanciaMovil, tiempoAcercamientoMin,
                 distanciaViajeKm, tiempoViajeMin, 
                 costoTotal, detalleRuta
@@ -228,6 +284,25 @@ public class VentanaPrincipalController implements Initializable {
         } catch (Exception e) {
             System.err.println("Error al procesar el viaje: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    // Método para recibir el usuario y actualizar el saludo de bienvenida en pantalla
+    public void setUsuarioActual(Usuario usuario) {
+        this.usuarioActual = usuario;
+        
+        if (this.usuarioActual != null) {
+            System.out.println("Usuario activo en ventana principal: " + usuarioActual.getNombre());
+            
+            if (lblBienvenida != null) {
+                lblBienvenida.setText("¡Bienvenido, " + usuarioActual.getNombre() + "!");
+            }
+            
+            if (usuarioActual.getRolActivo() == RolUsuario.CONDUCTOR && cbTipoUsuario != null) {
+                cbTipoUsuario.getSelectionModel().select("Conductor");
+            } else if (cbTipoUsuario != null) {
+                cbTipoUsuario.getSelectionModel().select("Cliente (Pasajero)");
+            }
         }
     }
 }

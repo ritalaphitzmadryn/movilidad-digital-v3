@@ -30,8 +30,15 @@
    <left>
       <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #1b5e20; -fx-padding: 15;" BorderPane.alignment="CENTER">
          <children>
-         
+         <!-- TIPO DE SERVICIO (PASAJEROS / ENVIOS) -->
+			<Label style="-fx-text-fill: white;" text="Modalidad de Servicio:" />
+			<ComboBox fx:id="cbTipoServicioEnum" maxWidth="Infinity" promptText="Seleccionar servicio..." />
+			<Label style="-fx-text-fill: white;" text="Tipo de Vehículo:" />
+			<ComboBox fx:id="cbTipoVehiculo" maxWidth="Infinity" promptText="Seleccionar vehículo..." />
             <Label style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;" text="Panel de Control" />
+            
+            <!-- Etiqueta de bienvenida personalizada -->
+            <Label fx:id="lblBienvenida" text="¡Bienvenido!" style="-fx-text-fill: #e8f5e9; -fx-font-weight: bold; -fx-font-size: 13px;" />
             
             <Label style="-fx-text-fill: white;" text="Tipo de Usuario:" />
             <ComboBox fx:id="cbTipoUsuario" maxWidth="Infinity" promptText="Seleccionar perfil..." />
@@ -51,8 +58,10 @@
             
             <!-- Botón de solicitar viaje -->
             <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
+            
             <!-- Botón para limpiar selecciones y rutas -->
-			<Button fx:id="btnLimpiar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="🗑️ Limpiar Selección" />
+            <Button fx:id="btnLimpiar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="🗑️ Limpiar Selección" />
+            
             <!-- Etiqueta para mostrar los resultados en pantalla -->
             <Label fx:id="lblResultadoViaje" wrapText="true" style="-fx-text-fill: #e8f5e9; -fx-font-size: 13px;" />        
          </children>

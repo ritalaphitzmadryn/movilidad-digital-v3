@@ -1,9 +1,7 @@
-
 package md.aplicacion;
 
-import md.rutas.api.*;
-import md.rutas.impl.*;
-
+import md.rutas.api.IRutasService;
+import md.rutas.impl.RutasServiceImpl; // <--- Import correcto de la implementación
 
 public class ContextoMovilidad {
     
@@ -14,7 +12,7 @@ public class ContextoMovilidad {
     
     // Constructor privado (patrón Singleton)
     private ContextoMovilidad() {
-        this.rutaService = new IRutasServiceImpl();
+        this.rutaService = new RutasServiceImpl(); // <--- Corregido aquí
         // Aquí podrías inicializar listas de viajes, conductores, etc.
     }
     

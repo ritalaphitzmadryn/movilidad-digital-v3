@@ -8,7 +8,7 @@ import java.util.UUID;
 import md.logica.GestorMovilidad;
 import md.modelo.*;
 import md.rutas.api.IRutasService;
-import md.rutas.impl.IRutasServiceImpl;
+import md.rutas.impl.RutasServiceImpl; // <--- Import corregido
 import md.ui.api.IInterfazUsuario;
 
 public class InterfazUsuario implements IInterfazUsuario {
@@ -279,8 +279,8 @@ public class InterfazUsuario implements IInterfazUsuario {
             double[] coordsOrigen = obtenerCoordenadas(nombreOrigen);
             double[] coordsDestino = obtenerCoordenadas(nombreDestino);
 
-            // Calcular distancia y ruta usando el servicio de rutas
-            IRutasService rutasService = new IRutasServiceImpl();
+            // Calcular distancia y ruta usando el servicio de rutas correcto
+            IRutasService rutasService = new RutasServiceImpl(); // <--- Corregido aquí
             double distanciaKm = rutasService.calcularDistanciaKm(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
             String detalleRuta = rutasService.calcularRuta(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
 
@@ -392,7 +392,7 @@ public class InterfazUsuario implements IInterfazUsuario {
         System.out.println("Ahora está utilizando el sistema como cliente.");
     }
 
-    // Método auxiliar de coordenadas idéntico al de JavaFX
+    // Método auxiliar de coordenadas
     private double[] obtenerCoordenadas(String lugar) {
         switch (lugar) {
             case "Municipalidad de Puerto Madryn": 
