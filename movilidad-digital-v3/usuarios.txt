@@ -11,6 +11,7 @@ Ricardo Silva;+549112785972;ricardo.silva@email.com;B1-D1-G;AE345JK;AJ890TU;
 Lucas Heredia;+549114854228;lucas.heredia@email.com;
 Gabriela Flores;+549116239227;gabriela.flores@email.com;B1-D1;AF678LM;
 Francisco Herrera;+549117883140;francisco.herrera@email.com;
+Rita;Lopez;rlaphitz@email.com;
 Jorge Medina;+549118006407;jorge.medina@email.com;
 Santiago Castro;+549112266612;santiago.castro@email.com;
 Federico Fernandez;+549118759701;federico.fernandez@email.com;

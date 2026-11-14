@@ -17,7 +17,7 @@
 
     <!-- Sección de Login Existente -->
     <VBox spacing="5">
-        <Label text="Correo electrónico (Login existente):" />
+        <Label text="Correo electrónico de usuario registrado:" />
         <TextField fx:id="txtEmail" promptText="ejemplo@correo.com" />
         <Button text="Ingresar" onAction="#handleIngresar" maxWidth="Infinity" style="-fx-base: #2e7d32; -fx-text-fill: white;" />
     </VBox>

@@ -31,16 +31,15 @@
       <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #1b5e20; -fx-padding: 15;" BorderPane.alignment="CENTER">
          <children>
          <!-- TIPO DE SERVICIO (PASAJEROS / ENVIOS) -->
-			<Label style="-fx-text-fill: white;" text="Modalidad de Servicio:" />
+			<Label style="-fx-text-fill: white;" text="¿Pasajero o Envio?" />
 			<ComboBox fx:id="cbTipoServicioEnum" maxWidth="Infinity" promptText="Seleccionar servicio..." />
-			<Label style="-fx-text-fill: white;" text="Tipo de Vehículo:" />
+			<Label style="-fx-text-fill: white;" text="Seleccioná que vehículo preferís:" />
 			<ComboBox fx:id="cbTipoVehiculo" maxWidth="Infinity" promptText="Seleccionar vehículo..." />
-            <Label style="-fx-font-weight: bold; -fx-text-fill: white; -fx-font-size: 16px;" text="Panel de Control" />
             
             <!-- Etiqueta de bienvenida personalizada -->
             <Label fx:id="lblBienvenida" text="¡Bienvenido!" style="-fx-text-fill: #e8f5e9; -fx-font-weight: bold; -fx-font-size: 13px;" />
             
-            <Label style="-fx-text-fill: white;" text="Tipo de Usuario:" />
+            <Label style="-fx-text-fill: white;" text="Elegí tipo de Usuario:" />
             <ComboBox fx:id="cbTipoUsuario" maxWidth="Infinity" promptText="Seleccionar perfil..." />
             
             <!-- ORIGEN: Solo botón y etiqueta informativa -->
