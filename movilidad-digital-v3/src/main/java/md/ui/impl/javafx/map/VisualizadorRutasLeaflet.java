@@ -16,11 +16,9 @@ public class VisualizadorRutasLeaflet {
     private boolean cargado = false;
     private BiConsumer<String, double[]> listenerSeleccion;
 
-    // Constructor que recibe el WebView del FXML (mapWebView)
     public VisualizadorRutasLeaflet(WebView webView) {
         this.webView = webView;
         this.webEngine = webView.getEngine();
-
         URL mapUrl = getClass().getResource("/ui/map/mapa.html");
         if (mapUrl != null) {
             webEngine.load(mapUrl.toExternalForm());
@@ -32,8 +30,14 @@ public class VisualizadorRutasLeaflet {
             if (newValue == Worker.State.SUCCEEDED) {
                 cargado = true;
                 conectarPuente();
+                System.out.println("Mapa cargado exitosamente.");
             }
         });
+
+        if (webEngine.getLoadWorker().getState() == Worker.State.SUCCEEDED) {
+            cargado = true;
+            conectarPuente();
+        }
     }
 
     private void conectarPuente() {
@@ -51,37 +55,57 @@ public class VisualizadorRutasLeaflet {
 
     public void activarSeleccion(String tipo) {
         if (cargado) {
+            // Forzar actualización de tamaño antes de activar para corregir desvíos post-zoom
+            invalidarTamañoMapa();
             webEngine.executeScript(String.format("activarSeleccion('%s');", tipo));
+        } else {
+            System.out.println("Advertencia: El mapa aún no está listo para activar selección.");
         }
     }
 
     public void mostrarMarcador(String tipo, double lat, double lon) {
         if (cargado) {
+            invalidarTamañoMapa();
             webEngine.executeScript(String.format("mostrarMarcadorSeleccion('%s', %f, %f);", tipo, lat, lon));
         }
     }
+
+    public void limpiarSeleccionYRutas() {
+        if (cargado) {
+            try {
+                webEngine.executeScript("limpiarMapaCompleto();");
+                System.out.println("Script limpiarMapaCompleto ejecutado en JS.");
+            } catch (Exception e) {
+                System.err.println("Error al limpiar el mapa: " + e.getMessage());
+            }
+        } else {
+            System.err.println("No se pudo limpiar: el mapa aún no está cargado.");
+        }
+    }
+
+    public void invalidarTamañoMapa() {
+        if (cargado) {
+            try {
+                webEngine.executeScript("if(typeof actualizarTamanoMapa === 'function') { actualizarTamanoMapa(); }");
+            } catch (Exception e) {
+                System.err.println("Error al actualizar tamaño del mapa: " + e.getMessage());
+            }
+        }
+    }
+
     public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD, String jsonCoordsAcercamiento, String jsonCoordsTraslado) {
         if (cargado) {
             String acercamiento = (jsonCoordsAcercamiento != null && !jsonCoordsAcercamiento.isEmpty()) ? jsonCoordsAcercamiento : "[]";
             String traslado = (jsonCoordsTraslado != null && !jsonCoordsTraslado.isEmpty()) ? jsonCoordsTraslado : "[]";
 
-            // Se envían los arreglos reales a JavaScript tal como indica la sección 4.5 del apunte
             String script = String.format(Locale.US, "trazarRutasCompletas(%f, %f, %f, %f, %f, %f, %s, %s);", 
                 latM, lonM, latO, lonO, latD, lonD, acercamiento, traslado);
             webEngine.executeScript(script);
         }
     }
-    public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD, String jsArrayCoordenadasTraslado) {
-        if (cargado) {
-            // Si no pasamos puntos viales, usa un array vacío []
-            String coords = (jsArrayCoordenadasTraslado != null && !jsArrayCoordenadasTraslado.isEmpty()) 
-                            ? jsArrayCoordenadasTraslado : "[]";
 
-            // Enviamos los datos a la función JavaScript con la geometría real de las calles
-            String script = String.format(Locale.US, "trazarRutasCompletas(%f, %f, %f, %f, %f, %f, [], %s);", 
-                latM, lonM, latO, lonO, latD, lonD, coords);
-            webEngine.executeScript(script);
-        }
+    public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD, String jsArrayCoordenadasTraslado) {
+        trazarRutasCompletas(latM, lonM, latO, lonO, latD, lonD, "[]", jsArrayCoordenadasTraslado);
     }
 
     public class PuenteSeleccionMapa {
@@ -91,17 +115,6 @@ public class VisualizadorRutasLeaflet {
                     listenerSeleccion.accept(tipo, new double[]{lat, lon});
                 }
             });
-        }
-    }
-    public void limpiarSeleccionYRutas() {
-        if (cargado) {
-            try {
-                webEngine.executeScript("limpiarMapaCompleto();");
-            } catch (Exception e) {
-                System.err.println("Error al limpiar el mapa: " + e.getMessage());
-            }
-        } else {
-            System.out.println("El mapa aún se está cargando.");
         }
     }
 }
