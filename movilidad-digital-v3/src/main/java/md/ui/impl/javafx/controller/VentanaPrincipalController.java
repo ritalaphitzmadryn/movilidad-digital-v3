@@ -26,6 +26,7 @@ import md.aplicacion.Aplicacion;
 import md.logica.GestorMovilidad;
 import md.modelo.CategoriaVehiculo;
 import md.modelo.Conductor;
+import md.modelo.EstadoConductor;
 import md.modelo.RolUsuario;
 import md.modelo.Servicio;
 import md.modelo.TipoServicio;
@@ -48,7 +49,7 @@ public class VentanaPrincipalController implements Initializable {
     // ComboBox para los Enums del diagrama de clases
     @FXML private ComboBox<TipoServicio> cbTipoServicioEnum; // PASAJEROS, ENVIOS
     @FXML private ComboBox<TipoVehiculo> cbTipoVehiculo;     // AUTO, MOTO
-    
+    @FXML private Label lblEstadoFlota;
     @FXML private Button btnSolicitar;
     @FXML private Button btnPincharOrigen;
     @FXML private Button btnPincharDestino;
@@ -318,16 +319,18 @@ public class VentanaPrincipalController implements Initializable {
 
             // Si el usuario presionó confirmar, ejecutamos el flujo completo de seguimiento, mapa y diálogo unificado
             if (confirmado[0]) {
-                if (visualizadorMapa != null) {
-                    // Recorrido en "L" simulado en la cuadrícula urbana
-                    String geometriaCalleSimulada = String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]",
-                        latOrigen, lonOrigen,   
-                        latDestino, lonOrigen,  
-                        latDestino, lonDestino  
-                    );
+            	if (visualizadorMapa != null) {
+            	    // Recorrido en "L" invertido (Primero se mueve horizontal y luego vertical)
+            	    String geometriaCalleSimulada = String.format(
+            	        Locale.US, 
+            	        "[[%f, %f], [%f, %f], [%f, %f]]",
+            	        latOrigen, lonOrigen,   // 1. Inicio
+            	        latOrigen, lonDestino,  // 2. Esquina (mantiene la latitud del origen y longitud del destino)
+            	        latDestino, lonDestino  // 3. Destino final
+            	    );
 
-                    visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
-                }
+            	    visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
+            	}
 
                 // Desplegar el panel completo con Progreso, Métricas, Detalles, Historial y Estrellas
                 mostrarResumenEHistorialViaje(distanciaViajeKm, costoTotal, patenteMovil, tipoServicioElegido, tipoVehiculoElegido, categoriaElegida, tiempoViajeMin);
@@ -536,4 +539,29 @@ public class VentanaPrincipalController implements Initializable {
             }
         }
     }
+    private void actualizarIndicadorFlota() {
+        try {
+            GestorMovilidad gestor = Aplicacion.getGestor();
+            if (gestor == null || gestor.obtenerUsuarios() == null) return;
+
+            // Contar cuántos conductores tienen el estado DISPONIBLE
+            long cantDisponibles = gestor.obtenerUsuarios().stream()
+                .filter(u -> u.getConductor() != null)
+                .filter(u -> u.getConductor().getEstadoConductor() == EstadoConductor.DISPONIBLE)
+                .count();
+
+            // Actualizar la etiqueta visual en la interfaz
+            if (lblEstadoFlota != null) {
+                if (cantDisponibles > 0) {
+                    lblEstadoFlota.setText("🟢 Conductores disponibles: " + cantDisponibles);
+                    lblEstadoFlota.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;"); // Verde
+                } else {
+                    lblEstadoFlota.setText("🔴 No hay conductores disponibles");
+                    lblEstadoFlota.setStyle("-fx-font-weight: bold; -fx-text-fill: #d32f2f;"); // Rojo
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al actualizar la flota: " + e.getMessage());
+        }
+    }	
 }
