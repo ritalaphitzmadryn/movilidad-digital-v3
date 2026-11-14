@@ -3,13 +3,17 @@ package md.ui.impl.javafx.controller;
 import java.net.URL;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.web.WebView;
 import md.aplicacion.Aplicacion;
@@ -205,7 +209,7 @@ public class VentanaPrincipalController implements Initializable {
                 detalleRuta = rutasService.calcularRuta(latOrigen, lonOrigen, latDestino, lonDestino);
             }
 
-            // Capturar las selecciones de los nuevos ComboBox de Enums
+            // Capturar las selecciones de los ComboBox de Enums
             TipoServicio tipoServicioElegido = cbTipoServicioEnum != null ? cbTipoServicioEnum.getValue() : TipoServicio.PASAJEROS;
             TipoVehiculo tipoVehiculoElegido = cbTipoVehiculo != null ? cbTipoVehiculo.getValue() : TipoVehiculo.AUTO;
             String categoriaElegida = cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard";
@@ -224,7 +228,6 @@ public class VentanaPrincipalController implements Initializable {
                         double cLat = latOrigen + 0.015; 
                         double cLon = lonOrigen + 0.015;
                         
-                        // Cálculo corregido (sin saltos de línea erróneos ni guiones perdidos)
                         double dist = rutasService != null ? 
                             rutasService.calcularDistanciaKm(cLat, cLon, latOrigen, lonOrigen) :
                             Math.sqrt(Math.pow(cLat - latOrigen, 2) + Math.pow(cLon - lonOrigen, 2)) * 111.0;
@@ -243,7 +246,6 @@ public class VentanaPrincipalController implements Initializable {
             double tiempoViajeMin = (distanciaViajeKm / 30.0) * 60.0;
             double tiempoAcercamientoMin = (menorDistanciaMovil / 30.0) * 60.0;
 
-            // Instanciar el Servicio utilizando los Enums seleccionados en la interfaz
             Servicio servicioEjemplo = new Servicio(
                 categoriaElegida, 
                 tipoServicioElegido, 
@@ -253,38 +255,119 @@ public class VentanaPrincipalController implements Initializable {
             ); 
             double costoTotal = servicioEjemplo.calcularCosto(distanciaViajeKm, tiempoViajeMin);
 
-            // 4. Mostrar información en la etiqueta inferior (`lblResultadoViaje`)
-            String resultadoTexto = String.format(
+            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            dialogStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+            dialogStage.setTitle("Movilidad Digital - Confirmación de Servicio");
+
+            javafx.scene.layout.VBox vbox = new javafx.scene.layout.VBox(15);
+            vbox.setStyle("-fx-background-color: #ffffff; -fx-padding: 25px; -fx-border-color: #2e7d32; -fx-border-width: 3px;");
+            vbox.setAlignment(javafx.geometry.Pos.TOP_LEFT);
+
+            javafx.scene.control.Label lblTitulo = new javafx.scene.control.Label("Resumen del Servicio (" + tipoServicioElegido + ")");
+            lblTitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+
+            String textoDetalle = String.format(
                 Locale.US, 
-                "Modalidad: %s | Vehículo: %s\n" +
-                "Móvil más cercano: %s (a %.2f km | ~%.0f min)\n" +
-                "Distancia del viaje: %.2f km (~%.0f min)\n" +
-                "Costo Total: $%.2f\n%s", 
-                tipoServicioElegido, tipoVehiculoElegido,
-                patenteMovil, menorDistanciaMovil, tiempoAcercamientoMin,
-                distanciaViajeKm, tiempoViajeMin, 
-                costoTotal, detalleRuta
+                "Vehículo seleccionado: %s (%s)\n" +
+                "Distancia del trayecto: %.2f km\n" +
+                "Tiempo Estimado: ~%.0f min\n" +
+                "Costo Total Estimado: $%.2f\n\n" +
+                "¿Desea confirmar la solicitud y buscar un móvil?",
+                tipoVehiculoElegido, categoriaElegida, distanciaViajeKm, tiempoViajeMin, costoTotal
             );
-            
-            if (lblResultadoViaje != null) {
-                lblResultadoViaje.setText(resultadoTexto);
-            }
+            javafx.scene.control.Label lblContenido = new javafx.scene.control.Label(textoDetalle);
+            lblContenido.setStyle("-fx-font-size: 14px; -fx-text-fill: #333333; -fx-line-spacing: 5px;");
 
-            // 5. Enviar instrucciones al mapa para dibujar acercamiento (azul) y traslado (verde)
-            if (visualizadorMapa != null) {
-                String geometriaCalleSimulada = String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]",
-                    latOrigen, lonOrigen,
-                    (latOrigen + latDestino) / 2 + 0.002, (lonOrigen + lonDestino) / 2 - 0.002,
-                    latDestino, lonDestino
+            javafx.scene.control.Button btnConfirmar = new javafx.scene.control.Button("Confirmar y Buscar");
+            btnConfirmar.setStyle("-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
+
+            javafx.scene.control.Button btnCancelar = new javafx.scene.control.Button("Cancelar");
+            btnCancelar.setStyle("-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
+
+            javafx.scene.layout.HBox botonesBox = new javafx.scene.layout.HBox(12, btnConfirmar, btnCancelar);
+            botonesBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+            vbox.getChildren().addAll(lblTitulo, lblContenido, botonesBox);
+
+            javafx.scene.Scene scene = new javafx.scene.Scene(vbox, 480, 260);
+            dialogStage.setScene(scene);
+
+            final boolean[] confirmado = {false};
+
+            btnConfirmar.setOnAction(e -> {
+                confirmado[0] = true;
+                dialogStage.close();
+            });
+
+            btnCancelar.setOnAction(e -> {
+                confirmado[0] = false;
+                dialogStage.close();
+            });
+
+            dialogStage.showAndWait();
+
+            // Si el usuario presionó confirmar, ejecutamos el resto del flujo
+            if (confirmado[0]) {
+                
+                // --- PASO 2: ACTUALIZACIÓN DINÁMICA DE ESTADOS DEL VIAJE ---
+                if (lblResultadoViaje != null) {
+                    lblResultadoViaje.setText("Estado: [SOLICITUD] - Buscando móvil cercano...");
+                }
+
+                String resultadoTexto = String.format(
+                    Locale.US, 
+                    "Estado: [ACEPTADO] / [INICIADO]\n" +
+                    "Modalidad: %s | Vehículo: %s\n" +
+                    "Móvil asignado: %s (a %.2f km | ~%.0f min)\n" +
+                    "Distancia del viaje: %.2f km (~%.0f min)\n" +
+                    "Costo Total: $%.2f\n%s", 
+                    tipoServicioElegido, tipoVehiculoElegido,
+                    patenteMovil, menorDistanciaMovil, tiempoAcercamientoMin,
+                    distanciaViajeKm, tiempoViajeMin, 
+                    costoTotal, detalleRuta
                 );
+                
+                if (lblResultadoViaje != null) {
+                    lblResultadoViaje.setText(resultadoTexto);
+                }
 
-                visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
+                if (visualizadorMapa != null) {
+                    String geometriaCalleSimulada = String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]",
+                        latOrigen, lonOrigen,
+                        (latOrigen + latDestino) / 2 + 0.002, (lonOrigen + lonDestino) / 2 - 0.002,
+                        latDestino, lonDestino
+                    );
+
+                    visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
+                }
+
+                mostrarDialogoCalificacion();
             }
-
         } catch (Exception e) {
-            System.err.println("Error al procesar el viaje: " + e.getMessage());
+            System.err.println("Error al procesar el servicio: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    // Método auxiliar para la calificación del servicio (simulando CalificacionViaje)
+    private void mostrarDialogoCalificacion() {
+        Alert dialogoCalificacion = new Alert(Alert.AlertType.INFORMATION);
+        dialogoCalificacion.setTitle("Servicio Finalizado");
+        dialogoCalificacion.setHeaderText("Estado: [FINALIZADO] - ¡Destino alcanzado!");
+        dialogoCalificacion.setContentText("Gracias por usar Movilidad Digital. Calificación y registro completados con éxito.");
+        
+        // Estilizar también el diálogo de finalización
+        DialogPane paneCalificacion = dialogoCalificacion.getDialogPane();
+        paneCalificacion.setPrefWidth(450);
+        paneCalificacion.setStyle(
+            "-fx-font-size: 14px; " +
+            "-fx-background-color: #ffffff; " +
+            "-fx-border-color: #2e7d32; " +
+            "-fx-border-width: 2px;"
+        );
+        paneCalificacion.lookup(".content.label").setStyle("-fx-font-size: 14px; -fx-text-fill: #333333;");
+
+        dialogoCalificacion.showAndWait();
     }
 
     // Método para recibir el usuario y actualizar el saludo de bienvenida en pantalla
