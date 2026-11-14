@@ -2,6 +2,7 @@ package md.ui.impl.javafx;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
+import md.aplicacion.Aplicacion;
 import md.ui.api.IInterfazUsuario;
 
 public class JavaFXUserInterface extends Application implements IInterfazUsuario {
@@ -20,8 +21,8 @@ public class JavaFXUserInterface extends Application implements IInterfazUsuario
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Aquí delegamos la inicialización de la ventana a tu MainApp o lógica existente
-        MainApp mainApp = new MainApp();
+        // Corregido el error de tipeo (Aplicacion en lugar de Aplcacion)
+        Aplicacion mainApp = new Aplicacion();
         mainApp.start(primaryStage);
     }
 }

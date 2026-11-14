@@ -36,7 +36,7 @@
     <options>
         <option>--enable-native-access=javafx.graphics,javafx.web</option>
     </options>
-    <mainClass>md.ui.impl.javafx.MainApp</mainClass> <!-- Reemplazá con la ruta a tu clase principal que extiende Application -->
+    <mainClass>md.aplicacion.Aplicacion</mainClass> 
             </configuration>
         </plugin>
     </plugins>
