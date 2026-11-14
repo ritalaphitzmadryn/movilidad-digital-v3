@@ -1,6 +1,8 @@
 package md.concurrencia;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import md.logica.GestorMovilidad;
 import md.modelo.CalificacionViaje;
@@ -20,6 +22,10 @@ public class ConductorTask implements Runnable {
 
     private int viajesRealizados = 0;
     private double recaudacionTotal = 0.0;
+    private int contadorRechazosLocales = 0;
+    
+    // Lista para almacenar el detalle de los viajes completados por este conductor
+    private final List<Viaje> viajesCompletados = new ArrayList<>();
 
     public ConductorTask(Usuario usuarioConductor, TableroServicios tablero, GestorMovilidad gestor) {
         this.usuarioConductor = usuarioConductor;
@@ -77,27 +83,44 @@ public class ConductorTask implements Runnable {
                     continue;
                 }
 
-                // Descuenta el viaje pendiente únicamente cuando un conductor compatible lo toma
                 tablero.confirmarAsignacion(viaje);
-
                 String nombreCliente = viaje.getCliente() != null ? viaje.getCliente().getNombre() : "Cliente";
 
-                gestor.aceptarViaje(viaje.getId(), usuarioConductor, LocalDateTime.now());
+                tablero.adquirirLock();
+                try {
+                    gestor.aceptarViaje(viaje.getId(), usuarioConductor, LocalDateTime.now());
+                } finally {
+                    tablero.liberarLock();
+                }
+
                 System.out.println("--> [Aceptado] Conductor: " + usuarioConductor.getNombre()
                         + " | Vehículo: " + infoVehiculo
                         + " | Viaje #" + idCorto + " (Cliente: " + nombreCliente + ")");
 
-                Thread.sleep(800 + random.nextInt(600));
+                Thread.sleep(700 + random.nextInt(500));
 
-                gestor.iniciarViaje(viaje.getId(), LocalDateTime.now());
+                tablero.adquirirLock();
+                try {
+                    gestor.iniciarViaje(viaje.getId(), LocalDateTime.now());
+                } finally {
+                    tablero.liberarLock();
+                }
                 System.out.println("    [En curso] Viaje #" + idCorto + " iniciado hacia " + viaje.getDestino().getDireccion());
 
-                Thread.sleep(1000 + random.nextInt(800));
+                Thread.sleep(900 + random.nextInt(700));
 
-                gestor.finalizarViaje(viaje.getId(), LocalDateTime.now(), CalificacionViaje.EXCELENTE, CalificacionViaje.MUY_BUENO);
+                tablero.adquirirLock();
+                try {
+                    gestor.finalizarViaje(viaje.getId(), LocalDateTime.now(), CalificacionViaje.EXCELENTE, CalificacionViaje.MUY_BUENO);
+                } finally {
+                    tablero.liberarLock();
+                }
 
                 viajesRealizados++;
                 recaudacionTotal += viaje.getCostoCalculado();
+                
+                // Guardamos el viaje finalizado en la lista del conductor
+                viajesCompletados.add(viaje);
 
                 String costoFinal = String.format("%.2f", viaje.getCostoCalculado());
                 System.out.println("<-- [Finalizado] Viaje #" + idCorto
@@ -121,5 +144,9 @@ public class ConductorTask implements Runnable {
 
     public Usuario getUsuarioConductor() {
         return usuarioConductor;
+    }
+
+    public List<Viaje> getViajesCompletados() {
+        return viajesCompletados;
     }
 }
