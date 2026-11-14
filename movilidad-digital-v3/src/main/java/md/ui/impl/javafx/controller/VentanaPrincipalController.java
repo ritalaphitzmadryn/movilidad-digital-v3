@@ -180,7 +180,7 @@ public class VentanaPrincipalController implements Initializable {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
         }
 
-        // Vincular el botón de limpiar selecciones
+        // Vincular el botón de limpiar selecciones / arrepentimiento de opciones
         if (btnLimpiar != null) {
             btnLimpiar.setOnAction(e -> {
                 if (visualizadorMapa != null) {
@@ -196,11 +196,27 @@ public class VentanaPrincipalController implements Initializable {
                     lblResultadoViaje.setText("");
                 }
                 
+                // Arrepentimiento: Devolver los ComboBox a su selección inicial por defecto
+                if (cbTipoServicioEnum != null && !cbTipoServicioEnum.getItems().isEmpty()) {
+                    cbTipoServicioEnum.getSelectionModel().selectFirst();
+                }
+                if (cbTipoVehiculo != null && !cbTipoVehiculo.getItems().isEmpty()) {
+                    cbTipoVehiculo.getSelectionModel().selectFirst();
+                }
+                if (cbTipoServicio != null && !cbTipoServicio.getItems().isEmpty()) {
+                    cbTipoServicio.getSelectionModel().selectFirst();
+                }
+                
                 origenSeleccionado = false;
                 destinoSeleccionado = false;
-                System.out.println("Mapa y selecciones limpiadas correctamente.");
+                System.out.println("Mapa, selecciones y opciones restablecidas correctamente.");
+                
+                actualizarIndicadorFlota(); // Actualizar indicador al limpiar
             });
         }
+
+        // Llamar al indicador de flota al arrancar la ventana
+        actualizarIndicadorFlota();
     }
 
     @FXML
@@ -325,7 +341,7 @@ public class VentanaPrincipalController implements Initializable {
             	        Locale.US, 
             	        "[[%f, %f], [%f, %f], [%f, %f]]",
             	        latOrigen, lonOrigen,   // 1. Inicio
-            	        latOrigen, lonDestino,  // 2. Esquina (mantiene la latitud del origen y longitud del destino)
+            	        latOrigen, lonDestino,  // 2. Esquina
             	        latDestino, lonDestino  // 3. Destino final
             	    );
 
@@ -334,6 +350,9 @@ public class VentanaPrincipalController implements Initializable {
 
                 // Desplegar el panel completo con Progreso, Métricas, Detalles, Historial y Estrellas
                 mostrarResumenEHistorialViaje(distanciaViajeKm, costoTotal, patenteMovil, tipoServicioElegido, tipoVehiculoElegido, categoriaElegida, tiempoViajeMin);
+                
+                // Refrescar indicador de flota
+                actualizarIndicadorFlota();
             }
         } catch (Exception e) {
             System.err.println("Error al procesar el servicio: " + e.getMessage());
@@ -538,7 +557,11 @@ public class VentanaPrincipalController implements Initializable {
                 cbTipoUsuario.getSelectionModel().select("Cliente (Pasajero)");
             }
         }
+        
+        // Actualizar indicador de flota al recibir el usuario
+        actualizarIndicadorFlota();
     }
+
     private void actualizarIndicadorFlota() {
         try {
             GestorMovilidad gestor = Aplicacion.getGestor();
@@ -563,5 +586,5 @@ public class VentanaPrincipalController implements Initializable {
         } catch (Exception e) {
             System.err.println("Error al actualizar la flota: " + e.getMessage());
         }
-    }	
+    }    
 }

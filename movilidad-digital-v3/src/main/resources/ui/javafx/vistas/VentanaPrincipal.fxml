@@ -67,8 +67,15 @@
          </children>
       </VBox>
    </left>  
-   <center>
-	  <Label fx:id="lblEstadoFlota" text="Conductores disponibles: 0" style="-fx-font-weight: bold; -fx-text-fill: #2e7d32;" />
-      <WebView fx:id="mapWebView" maxWidth="Infinity" maxHeight="Infinity" BorderPane.alignment="CENTER" />
+	  <center>
+      <VBox spacing="5" style="-fx-padding: 10; -fx-background-color: #ffffff;">
+         <children>
+            <!-- Etiqueta del estado de la flota -->
+            <Label fx:id="lblEstadoFlota" text="Conductores disponibles: 0" style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2e7d32;" />
+            
+            <!-- Visor del mapa web -->
+            <WebView fx:id="mapWebView" VBox.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity" />
+         </children>
+      </VBox>
    </center>
 </BorderPane>

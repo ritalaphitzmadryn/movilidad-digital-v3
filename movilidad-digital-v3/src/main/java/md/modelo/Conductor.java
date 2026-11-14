@@ -12,7 +12,7 @@ public class Conductor {
 
     public Conductor(String licenciaConducir, Vehiculo vehiculo) {
         this.licenciaConducir = licenciaConducir;
-        this.estadoConductor = EstadoConductor.FUERA_DE_SERVICIO;
+        this.estadoConductor = EstadoConductor.DISPONIBLE;
         this.vehiculos = new ArrayList<>();
         if (vehiculo != null) {
             this.vehiculos.add(vehiculo);
