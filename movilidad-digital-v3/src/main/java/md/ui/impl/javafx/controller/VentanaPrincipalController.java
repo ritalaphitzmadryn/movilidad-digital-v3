@@ -308,6 +308,9 @@ public class VentanaPrincipalController implements Initializable {
             javafx.scene.control.Button btnConfirmar = new javafx.scene.control.Button("Confirmar y Buscar");
             btnConfirmar.setStyle("-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
 
+            javafx.scene.control.Button btnArrepentirse = new javafx.scene.control.Button("🔄 Arrepentirse");
+            btnArrepentirse.setStyle("-fx-background-color: #ff9800; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
+            
             javafx.scene.control.Button btnCancelar = new javafx.scene.control.Button("Cancelar");
             btnCancelar.setStyle("-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
 
