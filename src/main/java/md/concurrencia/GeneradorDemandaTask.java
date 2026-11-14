@@ -15,7 +15,9 @@ public class GeneradorDemandaTask implements Runnable {
     private final GestorMovilidad gestor;
     private final List<Usuario> clientes;
     private final List<Servicio> servicios;
-    private final int cantidadDemandas;
+    private final long duracionMs;
+    private final int intervaloMinMs;
+    private final int intervaloMaxMs;
     private final int cantidadConductores;
     private final Random random;
 
@@ -29,21 +31,32 @@ public class GeneradorDemandaTask implements Runnable {
 
     public GeneradorDemandaTask(TableroServicios tablero, GestorMovilidad gestor,
                                 List<Usuario> clientes, List<Servicio> servicios,
-                                int cantidadDemandas, int cantidadConductores) {
+                                int duracionSegundos, int intervaloMinMs, int intervaloMaxMs,
+                                int cantidadConductores) {
         this.tablero = tablero;
         this.gestor = gestor;
         this.clientes = clientes;
         this.servicios = servicios;
-        this.cantidadDemandas = cantidadDemandas;
+        this.duracionMs = duracionSegundos * 1000L;
+        this.intervaloMinMs = intervaloMinMs;
+        this.intervaloMaxMs = intervaloMaxMs;
         this.cantidadConductores = cantidadConductores;
         this.random = new Random();
     }
 
     @Override
     public void run() {
+        long tiempoFin = System.currentTimeMillis() + duracionMs;
+        int emitidos = 0;
+
         try {
-            for (int i = 1; i <= cantidadDemandas; i++) {
-                Thread.sleep(700 + random.nextInt(600));
+            while (System.currentTimeMillis() < tiempoFin && !Thread.currentThread().isInterrupted()) {
+                int espera = intervaloMinMs + random.nextInt(Math.max(1, intervaloMaxMs - intervaloMinMs));
+                Thread.sleep(espera);
+
+                if (System.currentTimeMillis() >= tiempoFin) {
+                    break;
+                }
 
                 Usuario cliente = clientes.get(random.nextInt(clientes.size()));
                 Servicio servicio = servicios.get(random.nextInt(servicios.size()));
@@ -54,18 +67,24 @@ public class GeneradorDemandaTask implements Runnable {
                     destino = PUNTOS_URBANOS[random.nextInt(PUNTOS_URBANOS.length)];
                 } while (origen == destino);
 
-                Viaje viaje = gestor.solicitarViaje(cliente, servicio, origen, destino, LocalDateTime.now());
+                Viaje viaje;
+                tablero.adquirirLock();
+                try {
+                    viaje = gestor.solicitarViaje(cliente, servicio, origen, destino, LocalDateTime.now());
+                } finally {
+                    tablero.liberarLock();
+                }
+
                 tablero.publicarViaje(viaje);
+                emitidos++;
             }
 
-            System.out.println("\n[GeneradorDemanda] Se emitieron todas las solicitudes (" + cantidadDemandas + "). Esperando asignación total...\n");
+            System.out.println("\n[GeneradorDemanda] Tiempo de emisión cumplido (" + emitidos + " solicitudes generadas). Esperando cierre de viajes activos...\n");
 
-            // Espera hasta que todos los viajes hayan sido aceptados por un conductor compatible
             while (tablero.getViajesSinAsignar() > 0) {
                 Thread.sleep(300);
             }
 
-            // Envía la señal de cierre a todos los conductores una vez que no quedan viajes pendientes
             for (int i = 0; i < cantidadConductores; i++) {
                 tablero.publicarViaje(TableroServicios.FIN_DE_JORNADA);
             }

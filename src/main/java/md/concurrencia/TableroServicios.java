@@ -4,6 +4,7 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import md.modelo.Viaje;
 
 public class TableroServicios {
@@ -11,6 +12,7 @@ public class TableroServicios {
     private final ArrayBlockingQueue<Viaje> colaViajes;
     private final AtomicInteger viajesSinAsignar = new AtomicInteger(0);
     private final ConcurrentHashMap<UUID, AtomicInteger> conteoRechazosPorViaje = new ConcurrentHashMap<>();
+    private final ReentrantLock lockGestor = new ReentrantLock(true);
 
     public static final Viaje FIN_DE_JORNADA = new Viaje(null, null, null, null, null);
 
@@ -58,5 +60,13 @@ public class TableroServicios {
 
     public int getViajesSinAsignar() {
         return viajesSinAsignar.get();
+    }
+
+    public void adquirirLock() {
+        lockGestor.lock();
+    }
+
+    public void liberarLock() {
+        lockGestor.unlock();
     }
 }
