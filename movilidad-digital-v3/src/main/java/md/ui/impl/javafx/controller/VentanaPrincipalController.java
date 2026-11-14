@@ -3,18 +3,24 @@ package md.ui.impl.javafx.controller;
 import java.net.URL;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.ResourceBundle;
 
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
-import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.web.WebView;
 import md.aplicacion.Aplicacion;
 import md.logica.GestorMovilidad;
@@ -52,7 +58,11 @@ public class VentanaPrincipalController implements Initializable {
     private VisualizadorRutasLeaflet visualizadorMapa;
     private IRutasService rutasService = new RutasServiceImpl();
     private Usuario usuarioActual;
-
+    private Label lblDistanciaValor;
+    private Label lblCostoValor;
+    private Label lblConductorValor;
+    private Label lblVehiculoValor;
+    
     // Coordenadas iniciales por defecto en Puerto Madryn
     private double latOrigen = -42.7692;
     private double lonOrigen = -65.0385;
@@ -306,42 +316,21 @@ public class VentanaPrincipalController implements Initializable {
 
             dialogStage.showAndWait();
 
-            // Si el usuario presionó confirmar, ejecutamos el resto del flujo
+            // Si el usuario presionó confirmar, ejecutamos el flujo completo de seguimiento, mapa y diálogo unificado
             if (confirmado[0]) {
-                
-                // --- PASO 2: ACTUALIZACIÓN DINÁMICA DE ESTADOS DEL VIAJE ---
-                if (lblResultadoViaje != null) {
-                    lblResultadoViaje.setText("Estado: [SOLICITUD] - Buscando móvil cercano...");
-                }
-
-                String resultadoTexto = String.format(
-                    Locale.US, 
-                    "Estado: [ACEPTADO] / [INICIADO]\n" +
-                    "Modalidad: %s | Vehículo: %s\n" +
-                    "Móvil asignado: %s (a %.2f km | ~%.0f min)\n" +
-                    "Distancia del viaje: %.2f km (~%.0f min)\n" +
-                    "Costo Total: $%.2f\n%s", 
-                    tipoServicioElegido, tipoVehiculoElegido,
-                    patenteMovil, menorDistanciaMovil, tiempoAcercamientoMin,
-                    distanciaViajeKm, tiempoViajeMin, 
-                    costoTotal, detalleRuta
-                );
-                
-                if (lblResultadoViaje != null) {
-                    lblResultadoViaje.setText(resultadoTexto);
-                }
-
                 if (visualizadorMapa != null) {
+                    // Recorrido en "L" simulado en la cuadrícula urbana
                     String geometriaCalleSimulada = String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]",
-                        latOrigen, lonOrigen,
-                        (latOrigen + latDestino) / 2 + 0.002, (lonOrigen + lonDestino) / 2 - 0.002,
-                        latDestino, lonDestino
+                        latOrigen, lonOrigen,   
+                        latDestino, lonOrigen,  
+                        latDestino, lonDestino  
                     );
 
                     visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
                 }
 
-                mostrarDialogoCalificacion();
+                // Desplegar el panel completo con Progreso, Métricas, Detalles, Historial y Estrellas
+                mostrarResumenEHistorialViaje(distanciaViajeKm, costoTotal, patenteMovil, tipoServicioElegido, tipoVehiculoElegido, categoriaElegida, tiempoViajeMin);
             }
         } catch (Exception e) {
             System.err.println("Error al procesar el servicio: " + e.getMessage());
@@ -349,25 +338,184 @@ public class VentanaPrincipalController implements Initializable {
         }
     }
 
-    // Método auxiliar para la calificación del servicio (simulando CalificacionViaje)
-    private void mostrarDialogoCalificacion() {
-        Alert dialogoCalificacion = new Alert(Alert.AlertType.INFORMATION);
-        dialogoCalificacion.setTitle("Servicio Finalizado");
-        dialogoCalificacion.setHeaderText("Estado: [FINALIZADO] - ¡Destino alcanzado!");
-        dialogoCalificacion.setContentText("Gracias por usar Movilidad Digital. Calificación y registro completados con éxito.");
-        
-        // Estilizar también el diálogo de finalización
-        DialogPane paneCalificacion = dialogoCalificacion.getDialogPane();
-        paneCalificacion.setPrefWidth(450);
-        paneCalificacion.setStyle(
-            "-fx-font-size: 14px; " +
-            "-fx-background-color: #ffffff; " +
-            "-fx-border-color: #2e7d32; " +
-            "-fx-border-width: 2px;"
-        );
-        paneCalificacion.lookup(".content.label").setStyle("-fx-font-size: 14px; -fx-text-fill: #333333;");
+    // =========================================================================
+    // VENTANA DE SEGUIMIENTO, RESUMEN, HISTORIAL Y CALIFICACIÓN UNIFICADA
+    // =========================================================================
+    private void mostrarResumenEHistorialViaje(double distanciaKm, double costoTotal, String patenteMovil, TipoServicio tipoServicio, TipoVehiculo tipoVehiculo, String categoria, double tiempoMin) {
+        javafx.scene.control.Dialog<ButtonType> dialogo = new javafx.scene.control.Dialog<>();
+        dialogo.setTitle("Movilidad Digital - Seguimiento de mi pedido");
+        dialogo.setHeaderText("El viaje finalizó. ¡Gracias por usar Movilidad Digital!");
 
-        dialogoCalificacion.showAndWait();
+        javafx.scene.control.DialogPane pane = dialogo.getDialogPane();
+        pane.setPrefWidth(520);
+        pane.setPrefHeight(640);
+        pane.setStyle("-fx-background-color: #ffffff; -fx-border-color: #2e7d32; -fx-border-width: 2px;");
+
+        VBox root = new VBox(12);
+        root.setPadding(new Insets(15));
+        root.setStyle("-fx-background-color: #f9f9f9;");
+
+        ScrollPane scrollPane = new ScrollPane(root);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setStyle("-fx-background: #ffffff; -fx-background-color: transparent;");
+
+        // 1. PROGRESO DEL VIAJE (Stepper)
+        Label lblProgresoTitulo = new Label("Progreso del viaje");
+        lblProgresoTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
+        
+        HBox boxProgreso = new HBox(8);
+        boxProgreso.setAlignment(Pos.CENTER);
+        String[] estados = {"1-Solicitado", "2-Aceptado", "3-En viaje", "4-Finalizado"};
+        for (String estado : estados) {
+            Label lblEstado = new Label(estado);
+            lblEstado.setStyle("-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-padding: 4px 10px; -fx-background-radius: 12px; -fx-font-size: 11px; -fx-font-weight: bold;");
+            boxProgreso.getChildren().add(lblEstado);
+        }
+
+        // 2. MÉTRICAS (Tiempo, Distancia, Costo)
+        HBox boxMetricas = new HBox(10);
+        boxMetricas.setAlignment(Pos.CENTER);
+        
+        VBox cardTiempo = crearTarjetaMetrica("TIEMPO ESTIMADO", String.format(Locale.US, "~%.0f min", tiempoMin));
+        VBox cardDistancia = crearTarjetaMetrica("DISTANCIA APROX", String.format(Locale.US, "%.2f km", distanciaKm));
+        VBox cardCosto = crearTarjetaMetrica("COSTO ESTIMADO", String.format(Locale.US, "$ %.2f", costoTotal));
+        cardCosto.setStyle("-fx-background-color: white; -fx-border-color: #2e7d32; -fx-border-radius: 4px; -fx-padding: 8px 12px; -fx-alignment: center;");
+        
+        boxMetricas.getChildren().addAll(cardTiempo, cardDistancia, cardCosto);
+
+        // 3. DETALLES DEL PEDIDO
+        Label lblDetallesTitulo = new Label("Detalles del pedido");
+        lblDetallesTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
+
+        VBox boxDetalles = new VBox(5);
+        boxDetalles.setStyle("-fx-background-color: white; -fx-padding: 10px; -fx-border-color: #dddddd; -fx-border-radius: 5px;");
+        
+        String nombreCliente = usuarioActual != null ? usuarioActual.getNombre() : "Cliente General";
+        Label l1 = new Label("Pasajero: " + nombreCliente + " - +549115545146");
+        Label l2 = new Label("Conductor: Diego Sanchez - +549113872427");
+        Label l3 = new Label("Vehículo: " + tipoVehiculo + " - " + patenteMovil + " - " + categoria);
+        Label l4 = new Label("Servicio: " + categoria + " (" + tipoServicio + ")");
+        Label l5 = new Label(String.format(Locale.US, "Origen: Lat %.4f, Lon %.4f", latOrigen, lonOrigen));
+        Label l6 = new Label(String.format(Locale.US, "Destino: Lat %.4f, Lon %.4f", latDestino, lonDestino));
+        Label l7 = new Label("Calificaciones: Cliente: ⭐⭐⭐⭐⭐ · Conductor: ⭐⭐⭐⭐☆");
+        l7.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+
+        boxDetalles.getChildren().addAll(l1, l2, l3, l4, l5, l6, l7);
+        for (javafx.scene.Node node : boxDetalles.getChildren()) {
+            if (node instanceof Label && node != l7) {
+                ((Label) node).setStyle("-fx-text-fill: #333333; -fx-font-size: 11px;");
+            }
+        }
+
+        // 4. HISTORIAL DE EVENTOS
+        Label lblHistorialTitulo = new Label("Historial de eventos");
+        lblHistorialTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
+
+        VBox boxHistorial = new VBox(3);
+        boxHistorial.setStyle("-fx-background-color: white; -fx-padding: 10px; -fx-border-color: #dddddd; -fx-border-radius: 5px; -fx-font-family: 'Consolas', monospace;");
+        
+        java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        String t1 = java.time.LocalDateTime.now().minusMinutes(3).format(dtf);
+        String t2 = java.time.LocalDateTime.now().minusMinutes(2).format(dtf);
+        String t3 = java.time.LocalDateTime.now().minusMinutes(1).format(dtf);
+        String t4 = java.time.LocalDateTime.now().format(dtf);
+
+        boxHistorial.getChildren().addAll(
+            new Label(t1 + "  Solicitado"),
+            new Label(t2 + "  Aceptado"),
+            new Label(t3 + "  En viaje"),
+            new Label(t4 + "  Finalizado")
+        );
+        for (javafx.scene.Node node : boxHistorial.getChildren()) {
+            if (node instanceof Label) {
+                ((Label) node).setStyle("-fx-text-fill: #333333; -fx-font-size: 11px;");
+            }
+        }
+
+        // 5. CALIFICACIÓN INTERACTIVA (Estrellas)
+        Label lblCalifica = new Label("Califica tu experiencia de viaje:");
+        lblCalifica.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+        
+        HBox panelEstrellas = new HBox(8);
+        panelEstrellas.setAlignment(Pos.CENTER);
+        final int[] califSeleccionada = { 5 };
+        ToggleGroup grupoEstrellas = new ToggleGroup();
+        for (int i = 1; i <= 5; i++) {
+            ToggleButton btnEstrella = new ToggleButton(i + " ⭐");
+            btnEstrella.setToggleGroup(grupoEstrellas);
+            btnEstrella.setStyle("-fx-base: #e8f5e9; -fx-cursor: hand;");
+            final int valor = i;
+            btnEstrella.setOnAction(e -> califSeleccionada[0] = valor);
+            if (i == 5) btnEstrella.setSelected(true);
+            panelEstrellas.getChildren().add(btnEstrella);
+        }
+
+        root.getChildren().addAll(lblProgresoTitulo, boxProgreso, boxMetricas, lblDetallesTitulo, boxDetalles, lblHistorialTitulo, boxHistorial, lblCalifica, panelEstrellas);
+        pane.setContent(scrollPane);
+
+        ButtonType btnFinalizar = new ButtonType("Enviar Calificación y Cerrar", ButtonBar.ButtonData.OK_DONE);
+        pane.getButtonTypes().add(btnFinalizar);
+
+        dialogo.setResultConverter(dialogButton -> {
+            if (dialogButton == btnFinalizar) {
+                System.out.println("--- REGISTRO DE CALIFICACIÓN ---");
+                System.out.println("Puntuación guardada: " + califSeleccionada[0] + " estrellas.");
+            }
+            return null;
+        });
+
+        dialogo.showAndWait();
+    }
+
+    private VBox crearTarjetaMetrica(String titulo, String valor) {
+        VBox card = new VBox(3);
+        card.setAlignment(Pos.CENTER);
+        card.setPadding(new Insets(6, 12, 6, 12));
+        card.setStyle("-fx-background-color: white; -fx-border-color: #cccccc; -fx-border-radius: 4px;");
+        
+        Label lblT = new Label(titulo);
+        lblT.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666; -fx-font-weight: bold;");
+        Label lblV = new Label(valor);
+        lblV.setStyle("-fx-font-size: 13px; -fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+        
+        card.getChildren().addAll(lblT, lblV);
+        return card;
+    }
+
+    // ==========================================
+    // ACTUALIZAR PANEL DE RESUMEN Y COSTOS
+    // ==========================================
+    private void actualizarDatosViaje(double latOrigen, double lonOrigen, double latDestino, double lonDestino) {
+        try {
+            GestorMovilidad gestor = Aplicacion.getGestor();
+            if (gestor == null) return;
+
+            double distanciaKm = rutasService.calcularDistanciaKm(latOrigen, lonOrigen, latDestino, lonDestino);
+            double costoEstimado = gestor.calcularCostoEstimado(distanciaKm);
+            
+            Conductor conductorAsignado = gestor.asignarConductorAutomatico();
+            
+            if (lblDistanciaValor != null) {
+                lblDistanciaValor.setText(String.format("%.2f km", distanciaKm));
+            }
+            
+            if (lblCostoValor != null) {
+                lblCostoValor.setText(String.format("$ %.2f", costoEstimado));
+                lblCostoValor.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+            }
+            
+            if (conductorAsignado != null && lblConductorValor != null) {
+                String infoConductor = "Conductor asignado (Lic: " + conductorAsignado.getLicenciaConducir() + ")";
+                lblConductorValor.setText(infoConductor + " - ⭐ 4.8");
+            } else if (lblConductorValor != null) {
+                lblConductorValor.setText("Buscando conductor cercano...");
+            }
+
+            System.out.println("Panel actualizado con éxito. Distancia: " + distanciaKm + "km | Costo: $" + costoEstimado);
+
+        } catch (Exception e) {
+            System.err.println("Error al actualizar los datos del viaje: " + e.getMessage());
+        }
     }
 
     // Método para recibir el usuario y actualizar el saludo de bienvenida en pantalla

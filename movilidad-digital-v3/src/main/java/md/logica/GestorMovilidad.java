@@ -273,6 +273,38 @@ public class GestorMovilidad {
         }
         servicios.add(servicio);
     }
+ // =========================
+    // CÁLCULO DE COSTO ESTIMADO
+    // =========================
+    /**
+     * Calcula el costo estimado del viaje en base a los kilómetros recorridos.
+     * Tarifa base + valor por kilómetro (ajustable según el servicio).
+     */
+    public double calcularCostoEstimado(double distanciaKm) {
+        double tarifaBase = 800.0;
+        double costoPorKm = 1500.0;
+        double costoTotal = tarifaBase + (distanciaKm * costoPorKm);
+        
+        // Redondear a 2 decimales
+        return Math.round(costoTotal * 100.0) / 100.0;
+    }
+
+    // =========================
+    // ASIGNAR CONDUCTOR DISPONIBLE
+    // =========================
+    /**
+     * Busca un conductor disponible de forma automática para asignarlo al viaje simulado.
+     */
+    public Conductor asignarConductorAutomatico() {
+        List<Conductor> disponibles = obtenerConductoresDisponibles();
+        if (!disponibles.isEmpty()) {
+            Conductor conductorAsignado = disponibles.get(0);
+            // Opcional: actualizar su estado a ocupado si tu modelo lo maneja
+            // conductorAsignado.setEstadoConductor(EstadoConductor.EN_VIAJE);
+            return conductorAsignado;
+        }
+        return null; // Si no hay conductores libres en el mock
+    }
     // =========================
     // OBTENER REGISTRO DE VIAJES
     // =========================
@@ -290,3 +322,5 @@ public class GestorMovilidad {
         return new ArrayList<>(usuarios.values());
     }
 }
+
+
