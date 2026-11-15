@@ -360,6 +360,7 @@ public class VentanaPrincipalController implements Initializable {
             e.printStackTrace();
         }
     }
+    
 
     // =========================================================================
     // VENTANA DE SEGUIMIENTO, RESUMEN, HISTORIAL Y CALIFICACIÓN UNIFICADA
@@ -385,9 +386,9 @@ public class VentanaPrincipalController implements Initializable {
         // 1. PROGRESO DEL VIAJE (Stepper)
         Label lblProgresoTitulo = new Label("Progreso del viaje");
         lblProgresoTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
-        
-        HBox boxProgreso = new HBox(8);
-        boxProgreso.setAlignment(Pos.CENTER);
+
+        VBox boxProgreso = new VBox(8); // Cambiado a VBox para que se apilen verticalmente
+        boxProgreso.setAlignment(Pos.CENTER_LEFT); // Puedes usar Pos.CENTER si los quieres centrados
         String[] estados = {"1-Solicitado", "2-Aceptado", "3-En viaje", "4-Finalizado"};
         for (String estado : estados) {
             Label lblEstado = new Label(estado);
@@ -415,7 +416,30 @@ public class VentanaPrincipalController implements Initializable {
         
         String nombreCliente = usuarioActual != null ? usuarioActual.getNombre() : "Cliente General";
         Label l1 = new Label("Pasajero: " + nombreCliente + " - +549115545146");
-        Label l2 = new Label("Conductor: Diego Sanchez - +549113872427");
+        String textoConductor = "Conductor: No hay unidades disponibles";
+        try {
+            GestorMovilidad gestorBusqueda = Aplicacion.getGestor();
+            if (gestorBusqueda != null && gestorBusqueda.obtenerUsuarios() != null) {
+                List<Usuario> conductoresDisponibles = new java.util.ArrayList<>();
+                for (Usuario u : gestorBusqueda.obtenerUsuarios()) {
+                    if (u.getConductor() != null && u.getConductor().getEstadoConductor() == EstadoConductor.DISPONIBLE) {
+                        conductoresDisponibles.add(u);
+                    }
+                }
+
+                if (!conductoresDisponibles.isEmpty()) {
+                    Usuario usuarioConductor = conductoresDisponibles.get(new java.util.Random().nextInt(conductoresDisponibles.size()));
+                    String nombreCond = usuarioConductor.getNombre() != null ? usuarioConductor.getNombre() : "Conductor Asignado";
+                    String telCond = usuarioConductor.getTelefono() != null ? usuarioConductor.getTelefono() : "+549110000000";
+                    
+                    textoConductor = "Conductor: " + nombreCond + " - " + telCond;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error al buscar conductor al azar: " + e.getMessage());
+        }
+
+        Label l2 = new Label(textoConductor);
         Label l3 = new Label("Vehículo: " + tipoVehiculo + " - " + patenteMovil + " - " + categoria);
         Label l4 = new Label("Servicio: " + categoria + " (" + tipoServicio + ")");
         Label l5 = new Label(String.format(Locale.US, "Origen: Lat %.4f, Lon %.4f", latOrigen, lonOrigen));

@@ -281,8 +281,8 @@ public class GestorMovilidad {
      * Tarifa base + valor por kilómetro (ajustable según el servicio).
      */
     public double calcularCostoEstimado(double distanciaKm) {
-        double tarifaBase = 800.0;
-        double costoPorKm = 1500.0;
+        double tarifaBase = 6000.0;
+        double costoPorKm = 4000.0;
         double costoTotal = tarifaBase + (distanciaKm * costoPorKm);
         
         // Redondear a 2 decimales
