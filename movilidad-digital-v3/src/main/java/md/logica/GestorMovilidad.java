@@ -2,6 +2,7 @@ package md.logica;
 
 
 import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +15,11 @@ import md.modelo.Conductor;
 import md.modelo.EstadoConductor;
 import md.modelo.RegistroViaje;
 import md.modelo.Servicio;
+import md.modelo.TipoServicio;
 import md.modelo.Usuario;
 import md.modelo.Vehiculo;
+import md.modelo.TipoVehiculo;
+import md.modelo.CategoriaVehiculo;
 import md.modelo.Viaje;
 import md.modelo.Ubicacion;
 
@@ -321,6 +325,30 @@ public class GestorMovilidad {
     public List<Usuario> obtenerUsuarios() {
         return new ArrayList<>(usuarios.values());
     }
+    
+ // =========================
+    // BUSCAR SERVICIO ADECUADO
+    // =========================
+    public Servicio buscarServicioAdecuado(TipoServicio tipoServicio, TipoVehiculo tipoVehiculo, CategoriaVehiculo categoria) {
+        // 1. Coincidencia exacta (Tipo de Servicio, Tipo de Vehículo y Categoría)
+        for (Servicio s : servicios) {
+            if (s.getTipoServicio() == tipoServicio &&
+                s.getTipoVehiculo() == tipoVehiculo &&
+                s.getCategoriaVehiculo() == categoria) {
+                return s;
+            }
+        }
+        // 2. Coincidencia flexible por Tipo de Servicio y Tipo de Vehículo
+        for (Servicio s : servicios) {
+            if (s.getTipoServicio() == tipoServicio &&
+                s.getTipoVehiculo() == tipoVehiculo) {
+                return s;
+            }
+        }
+        // 3. Fallback: devolver el primero si existe
+        return servicios.isEmpty() ? null : servicios.get(0);
+    }
+    
 }
 
 

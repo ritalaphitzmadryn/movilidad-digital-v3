@@ -9,12 +9,14 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
@@ -274,18 +276,28 @@ public class VentanaPrincipalController implements Initializable {
                 }
             }
 
-            // 3. Costo y tiempos estimados
+         // 3. Costo y tiempos estimados usando servicios reales de la persistencia
             double tiempoViajeMin = (distanciaViajeKm / 30.0) * 60.0;
             double tiempoAcercamientoMin = (menorDistanciaMovil / 30.0) * 60.0;
 
-            Servicio servicioEjemplo = new Servicio(
-                categoriaElegida, 
-                tipoServicioElegido, 
-                tipoVehiculoElegido, 
-                CategoriaVehiculo.ESTANDAR, 
-                100.0, 50.0, 10.0
-            ); 
-            double costoTotal = servicioEjemplo.calcularCosto(distanciaViajeKm, tiempoViajeMin);
+            // Mapear el String del ComboBox de categoría al Enum CategoriaVehiculo
+            CategoriaVehiculo categoriaEnum = CategoriaVehiculo.ESTANDAR;
+            if ("Confort".equalsIgnoreCase(categoriaElegida)) {
+                categoriaEnum = CategoriaVehiculo.CONFORT;
+            } else if ("VIP".equalsIgnoreCase(categoriaElegida)) {
+                categoriaEnum = CategoriaVehiculo.PREMIUM;
+            }
+
+            // Buscar el servicio real que coincida con los selectores del usuario
+            Servicio servicioReal = gestor.buscarServicioAdecuado(tipoServicioElegido, tipoVehiculoElegido, categoriaEnum);
+            
+            // Fallback por seguridad si no se encuentra en la lista
+            if (servicioReal == null) {
+                servicioReal = new Servicio(categoriaElegida, tipoServicioElegido, tipoVehiculoElegido, categoriaEnum, 2000.0, 200.0, 100.0);
+            }
+
+            // Calcular el costo real usando la tarifa propia del servicio seleccionado
+            double costoTotal = servicioReal.calcularCosto(distanciaViajeKm, tiempoViajeMin);
 
             javafx.stage.Stage dialogStage = new javafx.stage.Stage();
             dialogStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
