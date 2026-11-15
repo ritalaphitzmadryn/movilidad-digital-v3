@@ -132,6 +132,7 @@ public class VentanaPrincipalController implements Initializable {
                     latOrigen = coords[0];
                     lonOrigen = coords[1];
                     origenSeleccionado = true;
+                    
                     visualizadorMapa.mostrarMarcador("origen", latOrigen, lonOrigen);
                     
                     if (lblOrigenInfo != null) {
@@ -139,11 +140,13 @@ public class VentanaPrincipalController implements Initializable {
                     }
                     System.out.println("Origen fijado desde el mapa: " + latOrigen + ", " + lonOrigen);
                     
-                    visualizadorMapa.activarSeleccion("destino");
+                   // visualizadorMapa.activarSeleccion("destino");
+                    
                 } else if ("destino".equals(tipo)) {
                     latDestino = coords[0];
                     lonDestino = coords[1];
                     destinoSeleccionado = true;
+                    
                     visualizadorMapa.mostrarMarcador("destino", latDestino, lonDestino);
                     
                     if (lblDestinoInfo != null) {
@@ -177,24 +180,17 @@ public class VentanaPrincipalController implements Initializable {
         if (btnSolicitar != null) {
             btnSolicitar.setOnAction(event -> handleSolicitarViaje());
         }
-
-        // Vincular el botón de limpiar selecciones / arrepentimiento de opciones
+        
+     // Vincular el botón de limpiar selecciones
         if (btnLimpiar != null) {
             btnLimpiar.setOnAction(e -> {
                 if (visualizadorMapa != null) {
                     visualizadorMapa.limpiarSeleccionYRutas();
                 }
-                if (lblOrigenInfo != null) {
-                    lblOrigenInfo.setText("No seleccionado");
-                }
-                if (lblDestinoInfo != null) {
-                    lblDestinoInfo.setText("No seleccionado");
-                }
-                if (lblResultadoViaje != null) {
-                    lblResultadoViaje.setText("");
-                }
+                if (lblOrigenInfo != null) lblOrigenInfo.setText("No seleccionado");
+                if (lblDestinoInfo != null) lblDestinoInfo.setText("No seleccionado");
+                if (lblResultadoViaje != null) lblResultadoViaje.setText("");
                 
-                // Arrepentimiento: Devolver los ComboBox a su selección inicial por defecto
                 if (cbTipoServicioEnum != null && !cbTipoServicioEnum.getItems().isEmpty()) {
                     cbTipoServicioEnum.getSelectionModel().selectFirst();
                 }
@@ -207,19 +203,30 @@ public class VentanaPrincipalController implements Initializable {
                 
                 origenSeleccionado = false;
                 destinoSeleccionado = false;
-                System.out.println("Mapa, selecciones y opciones restablecidas correctamente.");
+                System.out.println("Mapa restablecido correctamente. Listo para nuevo origen.");
                 
-                actualizarIndicadorFlota(); // Actualizar indicador al limpiar
+                actualizarIndicadorFlota();
             });
         }
 
-        // Llamar al indicador de flota al arrancar la ventana
+        // LLAMADA CLAVE PARA QUE MUESTRE LOS CONDUCTORES DISPONIBLES AL ARRANCAR
         actualizarIndicadorFlota();
     }
 
+        
     @FXML
     private void handleSolicitarViaje() {
         try {
+        	// VALIDACIÓN CLAVE: Evita que use coordenadas por defecto si no se seleccionó en el mapa
+            if (!origenSeleccionado || !destinoSeleccionado) {
+                Alert alert = new Alert(Alert.AlertType.WARNING);
+                alert.setTitle("Atención");
+                alert.setHeaderText("Ubicaciones no seleccionadas");
+                alert.setContentText("Por favor, selecciona tanto el Origen como el Destino haciendo clic en el mapa antes de solicitar el viaje.");
+                alert.showAndWait();
+                return; // Detiene la ejecución aquí
+            }
+            
             GestorMovilidad gestor = Aplicacion.getGestor();
             if (gestor == null) {
                 System.err.println("Error: El GestorMovilidad no ha sido inicializado.");
@@ -241,8 +248,8 @@ public class VentanaPrincipalController implements Initializable {
 
             // 2. Buscar el conductor / móvil más cercano disponible
             double menorDistanciaMovil = Double.MAX_VALUE;
-            double latMovil = latOrigen + 0.01; 
-            double lonMovil = lonOrigen + 0.01;
+            double latMovil = latOrigen - 0.008; 
+            double lonMovil = lonOrigen + 0.008;
             String patenteMovil = "AA-123-BB";
 
             List<Usuario> usuarios = gestor.obtenerUsuarios();
