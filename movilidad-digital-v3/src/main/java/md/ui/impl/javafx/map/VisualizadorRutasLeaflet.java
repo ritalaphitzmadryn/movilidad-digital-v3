@@ -15,6 +15,9 @@ public class VisualizadorRutasLeaflet {
     private final WebEngine webEngine;
     private boolean cargado = false;
     private BiConsumer<String, double[]> listenerSeleccion;
+    
+   // Declarar el puente como atributo de instancia para evitar que el GC lo destruya
+    private final PuenteSeleccionMapa puente = new PuenteSeleccionMapa();
 
     // Constructor que recibe el WebView del FXML (mapWebView)
     public VisualizadorRutasLeaflet(WebView webView) {
@@ -39,7 +42,9 @@ public class VisualizadorRutasLeaflet {
     private void conectarPuente() {
         try {
             JSObject ventana = (JSObject) webEngine.executeScript("window");
-            ventana.setMember("javaBridge", new PuenteSeleccionMapa());
+            // se utiliza el objeto puente instanciado ( Linea 19)
+            ventana.setMember("javaBridge", this.puente);
+            System.out.println("Puente JavaScript (javaBridge) conectado exitosamente desde Java.");
         } catch (Exception e) {
             System.err.println("Error al conectar el puente JavaScript: " + e.getMessage());
         }
@@ -57,7 +62,7 @@ public class VisualizadorRutasLeaflet {
 
     public void mostrarMarcador(String tipo, double lat, double lon) {
         if (cargado) {
-            webEngine.executeScript(String.format("mostrarMarcadorSeleccion('%s', %f, %f);", tipo, lat, lon));
+            webEngine.executeScript(String.format(Locale.US, "mostrarMarcadorSeleccion('%s', %f, %f);", tipo, lat, lon));
         }
     }
     public void trazarRutasCompletas(double latM, double lonM, double latO, double lonO, double latD, double lonD, String jsonCoordsAcercamiento, String jsonCoordsTraslado) {
@@ -86,6 +91,7 @@ public class VisualizadorRutasLeaflet {
 
     public class PuenteSeleccionMapa {
         public void seleccionarPunto(String tipo, double lat, double lon) {
+        	System.out.println("🟢 ¡ÉXITO! El puente JavaScript conectó con Java. Tipo: " + tipo + " | Lat: " + lat + " | Lon: " + lon);
             Platform.runLater(() -> {
                 if (listenerSeleccion != null) {
                     listenerSeleccion.accept(tipo, new double[]{lat, lon});
@@ -96,7 +102,7 @@ public class VisualizadorRutasLeaflet {
     public void limpiarSeleccionYRutas() {
         if (cargado) {
             try {
-                webEngine.executeScript("limpiarMapaCompleto();");
+            	webEngine.executeScript("limpiarYReactivarOrigen();");
             } catch (Exception e) {
                 System.err.println("Error al limpiar el mapa: " + e.getMessage());
             }
