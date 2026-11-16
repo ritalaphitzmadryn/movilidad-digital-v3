@@ -457,7 +457,7 @@ public class VentanaPrincipalController implements Initializable {
         VBox boxDetalles = new VBox(5);
         boxDetalles.setStyle("-fx-background-color: white; -fx-padding: 10px; -fx-border-color: #dddddd; -fx-border-radius: 5px;");
         
-        String nombreCliente = usuarioActual != null ? usuarioActual.getNombre() : "Cliente General";
+        String nombreCliente = usuarioActual != null ? usuarioActual.getNombre() : "Cliente";
         String textoConductor = "Conductor: No hay unidades disponibles";
         try {
             GestorMovilidad gestorBusqueda = Aplicacion.getGestor();
