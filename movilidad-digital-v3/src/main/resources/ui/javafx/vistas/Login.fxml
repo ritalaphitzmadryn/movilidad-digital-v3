@@ -4,32 +4,35 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox alignment="CENTER" spacing="15" prefWidth="400" prefHeight="450" 
+<VBox alignment="CENTER" spacing="12" prefWidth="400" prefHeight="500" 
       xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" 
       fx:controller="md.ui.impl.javafx.controller.LoginController">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <Label text="Iniciar sesión o crear un usuario" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+    <Label text="Movilidad Digital - Acceso" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
 
     <Separator />
 
     <!-- Sección de Login Existente -->
-    <VBox spacing="5">
-        <Label text="Correo electrónico de usuario registrado:" />
-        <TextField fx:id="txtEmail" promptText="ejemplo@correo.com" />
-        <Button text="Ingresar" onAction="#handleIngresar" maxWidth="Infinity" style="-fx-base: #2e7d32; -fx-text-fill: white;" />
+    <VBox spacing="6">
+        <Label text="Iniciar sesión (Usuario registrado):" style="-fx-font-weight: bold;" />
+        <TextField fx:id="txtEmail" promptText="Correo electrónico o Nombre" />
+        
+        <Label text="Rol con el que desea ingresar:" />
+        <ComboBox fx:id="cmbRol" maxWidth="Infinity" />
+        
+        <Button text="Ingresar" onAction="#handleIngresar" maxWidth="Infinity" style="-fx-base: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold;" />
     </VBox>
 
     <Separator />
 
     <!-- Sección de Registro Nuevo -->
-    <VBox spacing="8">
+    <VBox spacing="6">
         <Label text="Completá estos datos si sos nuevo:" style="-fx-font-weight: bold;" />
         <TextField fx:id="txtNombre" promptText="Nombre y Apellido" />
         <TextField fx:id="txtTelefono" promptText="Teléfono" />
-        <ComboBox fx:id="cmbRol" maxWidth="Infinity" />
         <Button text="Crear usuario" onAction="#handleCrearUsuario" maxWidth="Infinity" />
     </VBox>
 

@@ -10,6 +10,8 @@ import md.config.DAOLoader;
 import md.datos.DAO.DAOFactory;
 import md.datos.DAO.UsuariosDAO;
 import md.modelo.Usuario;
+import md.modelo.RolUsuario;
+import md.modelo.Conductor;
 
 import java.io.IOException;
 import java.util.Map;
@@ -37,7 +39,10 @@ public class LoginController {
             return;
         }
         texto = texto.trim();
-        System.out.println("Intentando iniciar sesión con: " + texto);
+        
+        // Obtener el rol seleccionado en el ComboBox de la interfaz
+        String rolSeleccionado = cmbRol != null ? cmbRol.getValue() : "Cliente (Pasajero)";
+        System.out.println("Intentando iniciar sesión con: " + texto + " | Rol seleccionado: " + rolSeleccionado);
 
         try {
             DAOFactory factory = DAOLoader.getFactory();
@@ -58,7 +63,30 @@ public class LoginController {
 
             if (usuarioEncontrado != null) {
                 System.out.println("¡Usuario encontrado! Bienvenido: " + usuarioEncontrado.getNombre());
-                abrirVentanaPrincipal(usuarioEncontrado);
+
+                // Validar flujo según el rol elegido en el ComboBox
+                if (rolSeleccionado != null && rolSeleccionado.contains("Conductor")) {
+                    
+                    // 1. Validar según el diagrama que el usuario tenga un perfil de conductor creado
+                    if (usuarioEncontrado.getConductor() == null) {
+                        mostrarAlerta("El usuario '" + usuarioEncontrado.getNombre() + "' no tiene un perfil de conductor registrado en el sistema.");
+                        return;
+                    }
+
+                    // 2. Cambiar el rol activo a CONDUCTOR (método del diagrama)
+                    usuarioEncontrado.cambiarRolActivo(RolUsuario.CONDUCTOR);
+
+                    // 3. Abrir la interfaz específica del conductor
+                    abrirVentanaConductor(usuarioEncontrado);
+
+                } else {
+                    // Cambiar el rol activo a CLIENTE (método del diagrama)
+                    usuarioEncontrado.cambiarRolActivo(RolUsuario.CLIENTE);
+
+                    // Abrir la ventana principal de cliente/pasajero
+                    abrirVentanaPrincipal(usuarioEncontrado);
+                }
+
             } else {
                 mostrarAlerta("El usuario o correo '" + texto + "' no está registrado en el archivo.");
             }
@@ -84,11 +112,13 @@ public class LoginController {
             DAOFactory factory = DAOLoader.getFactory();
             UsuariosDAO usuarioDAO = factory.getUsuarioDAO();
 
-            // Creamos el usuario adaptado a tu modelo (nombre, id/nombre, teléfono, email)
             Usuario nuevoUsuario = new Usuario(nombre, nombre, telefono, email);
             usuarioDAO.guardar(nuevoUsuario);
 
             mostrarAlerta("¡Usuario registrado con éxito!");
+            
+            // Por defecto los nuevos usuarios entran como cliente
+            nuevoUsuario.cambiarRolActivo(RolUsuario.CLIENTE);
             abrirVentanaPrincipal(nuevoUsuario);
 
         } catch (Exception e) {
@@ -107,11 +137,9 @@ public class LoginController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/VentanaPrincipal.fxml"));
             Parent root = loader.load();
 
-            // Opcional: Si tu controlador principal recibe el usuario, puedes inyectarlo aquí.
-
             Stage stage = (Stage) txtEmail.getScene().getWindow();
             stage.setScene(new Scene(root));
-            stage.setTitle("Movilidad Digital - Panel Principal (" + usuario.getNombre() + ")");
+            stage.setTitle("Movilidad Digital - Panel Principal (Cliente: " + usuario.getNombre() + ")");
             stage.show();
 
         } catch (IOException e) {
@@ -120,6 +148,26 @@ public class LoginController {
         }
     }
 
+    private void abrirVentanaConductor(Usuario usuario) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/PanelConductor.fxml"));
+            Parent root = loader.load();
+
+            Object controller = loader.getController();
+            if (controller instanceof PanelConductorController) {
+                ((PanelConductorController) controller).setUsuarioActual(usuario);
+            }
+
+            Stage stage = (Stage) txtEmail.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Movilidad Digital - Panel de Conductor (" + usuario.getNombre() + ")");
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            mostrarAlerta("No se pudo cargar la ventana del conductor (PanelConductor.fxml).");
+        }
+    }
     private void mostrarAlerta(String mensaje) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, mensaje, ButtonType.OK);
         alert.showAndWait();
