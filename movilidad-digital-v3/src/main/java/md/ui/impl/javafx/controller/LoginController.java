@@ -28,6 +28,7 @@ public class LoginController {
         if (cmbRol != null) {
             cmbRol.getItems().addAll("Cliente (Pasajero)", "Conductor");
             cmbRol.getSelectionModel().selectFirst();
+            
         }
     }
 
@@ -66,7 +67,6 @@ public class LoginController {
 
                 // Validar flujo según el rol elegido en el ComboBox
                 if (rolSeleccionado != null && rolSeleccionado.contains("Conductor")) {
-                    
                     // 1. Validar según el diagrama que el usuario tenga un perfil de conductor creado
                     if (usuarioEncontrado.getConductor() == null) {
                         mostrarAlerta("El usuario '" + usuarioEncontrado.getNombre() + "' no tiene un perfil de conductor registrado en el sistema.");
