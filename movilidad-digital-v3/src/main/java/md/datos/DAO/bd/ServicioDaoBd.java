@@ -119,25 +119,24 @@ public class ServicioDaoBd implements ServicioDAO{
     }
     public List<Viaje> cargarViajesDisponiblesDesdeBd() {
         List<Viaje> lista = new ArrayList<>();
-        String sql = "SELECT id, origen, destino, distancia, estado FROM viaje WHERE estado = 'PENDIENTE'"; // Ajusta la tabla/estado según tu esquema
+        String sql = "SELECT id, origen_nombre, destino_nombre, estado FROM viaje WHERE estado = 'SOLICITADO'"; 
 
         try (Connection conn = conexion.conectar();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                int id = rs.getInt("id");
-                String origen = rs.getString("origen");
-                String destino = rs.getString("destino");
-                double distancia = rs.getDouble("distancia");
+                // Creamos ubicaciones ficticias o las leemos de la BD según tu estructura
+                md.modelo.Ubicacion origen = new md.modelo.Ubicacion(rs.getString("origen_nombre"), 0.0, 0.0);
+                md.modelo.Ubicacion destino = new md.modelo.Ubicacion(rs.getString("destino_nombre"), 0.0, 0.0);
                 
-                // Instancias tu objeto Viaje según el constructor de tu modelo
-                Viaje viaje = new Viaje(id, origen, destino, distancia);
+                // Usamos el constructor válido de Viaje (Cliente, Servicio, Origen, Destino)
+                // Nota: Si el cliente o servicio vienen de la BD, deberás consultarlos o pasarlos adecuadamente.
+                Viaje viaje = new Viaje(null, null, origen, destino);
                 lista.add(viaje);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return lista;
-    }
-}
+    }}

@@ -27,4 +27,9 @@
    
     <!-- NUEVO: Botón para volver al Login o ir al Mapa -->
     <Button text="Volver al Login / Salir" onAction="#handleVolverLogin" maxWidth="Infinity" style="-fx-base: #d32f2f; -fx-text-fill: white;" />
-</VBox>
+	<!-- Botón para aceptar / gestionar el viaje -->
+    
+    <!-- NUEVO: Botón para ver el historial de servicios -->
+    <Button text="Ver Historial de Viajes" onAction="#handleVerHistorial" maxWidth="Infinity" style="-fx-base: #1565c0; -fx-text-fill: white;" />
+
+    </VBox>

@@ -118,6 +118,7 @@ public class PanelConductorController implements Initializable {
             );
         }
     }
+
     @FXML
     private void handleAceptarViaje() {
         if (conductorActual == null) return;
@@ -152,41 +153,38 @@ public class PanelConductorController implements Initializable {
             btnAceptarViaje.setText("Finalizar Viaje");
             
         } else if (estadoActual == EstadoConductor.VIAJE_A_DESTINO) {
-            // FASE 3: Se completa el viaje, vuelve a estar disponible y se resetea el botón
+            // FASE 3: Se completa el viaje, vuelve a estar disponible y resetea el botón
             conductorActual.setEstadoConductor(EstadoConductor.DISPONIBLE);
             actualizarTextoEstado(EstadoConductor.DISPONIBLE);
             System.out.println("¡Viaje finalizado con éxito! Conductor nuevamente disponible.");
             
             btnAceptarViaje.setText("Aceptar Viaje Seleccionado");
-            
-            // Opcional: Aquí podrías abrir una ventana de calificación o resumen si lo deseas
-            // JavaFXUserInterface.cambiarVista("/ui/javafx/vistas/PanelCalificacion.fxml", "Calificar Viaje");
-        } else if (estadoActual == EstadoConductor.VIAJE_A_DESTINO) {
-            // FASE 3: Se completa el viaje
-            conductorActual.setEstadoConductor(EstadoConductor.DISPONIBLE);
-            actualizarTextoEstado(EstadoConductor.DISPONIBLE);
-            System.out.println("¡Viaje finalizado con éxito! Conductor nuevamente disponible.");
-            
-            // VOLVER A LA PANTALLA PRINCIPAL (LOGIN)
-            JavaFXUserInterface.cambiarVista("/ui/javafx/vistas/Login.fxml", "Movilidad Digital - Iniciar Sesión");
         }
     }
     
     @FXML
+    private void handleVerHistorial(javafx.event.ActionEvent event) {
+        try {
+            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/PanelHistorialConductor.fxml"));
+            javafx.scene.Parent root = loader.load();
+            stage.setTitle("Movilidad Digital - Historial de Viajes");
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
     private void handleVolverLogin(javafx.event.ActionEvent event) {
         try {
-            // 1. Obtenemos el Stage (ventana) actual directamente desde el botón presionado
             javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
-            
-            // 2. Cargamos el archivo FXML del Login
-            javafx.fxml.FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/Login.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/Login.fxml"));
             javafx.scene.Parent root = loader.load();
-            
-            // 3. Asignamos la nueva escena y título
             stage.setTitle("Movilidad Digital - Iniciar Sesión");
             stage.setScene(new javafx.scene.Scene(root));
             stage.show();
-            
         } catch (Exception e) {
             e.printStackTrace();
         }
