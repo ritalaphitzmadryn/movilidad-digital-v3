@@ -8,7 +8,10 @@ public class Usuario {
     private RolUsuario rolActivo;
     private Cliente cliente;
     private Conductor conductor;
-
+    
+    public Usuario() {
+    };
+    
     public Usuario(String id, String nombre, String telefono, String email) {
         this.id = id;
         this.nombre = nombre;

@@ -10,6 +10,7 @@ import java.util.List;
 import md.datos.DAO.*;
 import md.modelo.TipoServicio;
 import md.modelo.TipoVehiculo;
+import md.modelo.Usuario;
 import md.modelo.Viaje;
 import md.modelo.CategoriaVehiculo;
 import md.modelo.Servicio;
@@ -139,4 +140,60 @@ public class ServicioDaoBd implements ServicioDAO{
             e.printStackTrace();
         }
         return lista;
-    }}
+    }
+    public List<Viaje> cargarHistorialPorConductor(String emailConductor) {
+        List<Viaje> lista = new ArrayList<>();
+        // Especificamos el esquema movilidad_digital.servicio
+        String sql = "SELECT nombre, tarifa_base FROM movilidad_digital.servicio"; 
+
+        try (Connection c = conexion.conectar();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            
+            while (rs.next()) {
+                String descripcionRuta = rs.getString("nombre");
+                double costo = rs.getDouble("tarifa_base");
+                
+                md.modelo.Ubicacion origen = new md.modelo.Ubicacion(descripcionRuta, 0.0, 0.0);
+                md.modelo.Ubicacion destino = new md.modelo.Ubicacion("Destino Registrado", 0.0, 0.0);
+                
+                Usuario clienteFicticio = new Usuario(); 
+                Viaje viaje = new Viaje(clienteFicticio, null, origen, destino);
+                
+                lista.add(viaje);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al cargar el historial de servicios", e);
+        }
+        return lista;
+    }
+    
+    public void guardarViajeRealizado(md.modelo.Viaje viaje, String emailConductor) {
+        // Especificamos el esquema movilidad_digital.servicio
+        String sql = "INSERT INTO movilidad_digital.servicio (nombre, tarifa_base, precio_km, precio_minuto, tipo_vehiculo, categoria_vehiculo, tipo_servicio) VALUES (?, ?, ?, ?, 1, 1, 1)";
+
+        try (Connection c = conexion.conectar();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            
+            String origenStr = viaje.getOrigen() != null ? viaje.getOrigen().getDireccion() : "Origen";
+            String destinoStr = viaje.getDestino() != null ? viaje.getDestino().getDireccion() : "Destino";
+            
+            // Armamos un texto compacto y nos aseguramos de que no supere los 50 caracteres
+            String descripcion = origenStr + " -> " + destinoStr;
+            if (descripcion.length() > 50) {
+                descripcion = descripcion.substring(0, 47) + "...";
+            }
+            
+            ps.setString(1, descripcion);
+            ps.setDouble(2, viaje.getCostoCalculado());
+            ps.setDouble(3, 0.0);
+            ps.setDouble(4, 0.0);
+            
+            ps.executeUpdate();
+            System.out.println("💾 [DAO] ¡Viaje guardado exitosamente en la tabla de servicios!");
+            
+        } catch (SQLException e) {
+            throw new RuntimeException("Error al guardar el viaje realizado en servicios", e);
+        }
+    }    
+}

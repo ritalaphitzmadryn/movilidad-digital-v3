@@ -129,10 +129,16 @@ public class PanelConductorController implements Initializable {
             // FASE 1: Acepta el viaje de la lista
             String viajeSeleccionado = listViajesDisponibles.getSelectionModel().getSelectedItem();
             
+            // Si el usuario olvidó hacer clic en la lista pero hay elementos, tomamos el primero automáticamente
+            if (viajeSeleccionado == null && !listViajesDisponibles.getItems().isEmpty()) {
+                viajeSeleccionado = listViajesDisponibles.getItems().get(0);
+                System.out.println("AVISO: No habías seleccionado un viaje, se tomó el primero automáticamente.");
+            }
+            
             if (viajeSeleccionado != null) {
                 System.out.println("¡Viaje aceptado con éxito!: " + viajeSeleccionado);
                 
-                // Cambia a viaje a origen
+                // Cambia a viaje a origen (Fase 2)
                 conductorActual.setEstadoConductor(EstadoConductor.VIAJE_A_ORIGEN);
                 actualizarTextoEstado(EstadoConductor.VIAJE_A_ORIGEN);
                 
@@ -142,7 +148,7 @@ public class PanelConductorController implements Initializable {
                 // Cambiamos el texto del botón para guiar al conductor al siguiente paso
                 btnAceptarViaje.setText("Confirmar Llegada a Destino / Finalizar");
             } else {
-                System.out.println("Seleccioná un viaje de la lista para poder aceptarlo.");
+                System.out.println("No hay viajes disponibles en la lista para aceptar.");
             }
             
         } else if (estadoActual == EstadoConductor.VIAJE_A_ORIGEN) {
@@ -153,11 +159,35 @@ public class PanelConductorController implements Initializable {
             btnAceptarViaje.setText("Finalizar Viaje");
             
         } else if (estadoActual == EstadoConductor.VIAJE_A_DESTINO) {
-            // FASE 3: Se completa el viaje, vuelve a estar disponible y resetea el botón
+            // FASE 3: Se completa el viaje, vuelve a estar disponible y guarda en la BD (usando la tabla servicio)
             conductorActual.setEstadoConductor(EstadoConductor.DISPONIBLE);
             actualizarTextoEstado(EstadoConductor.DISPONIBLE);
             System.out.println("¡Viaje finalizado con éxito! Conductor nuevamente disponible.");
             
+            // --- GUARDADO USANDO LA TABLA SERVICIO EXISTENTE ---
+            try {
+                if (usuarioActual != null) {
+                    String url = "jdbc:postgresql://pgs.fi.mdn.unp.edu.ar:30000/bd1";
+                    String user = "estudiante";
+                    String password = "bd1estudiante";
+                    
+                    md.datos.DAO.bd.ConexionBD conexion = new md.datos.DAO.bd.ConexionBD(url, user, password);
+                    md.datos.DAO.bd.ServicioDaoBd dao = new md.datos.DAO.bd.ServicioDaoBd(conexion);
+                    
+                    md.modelo.Ubicacion origen = new md.modelo.Ubicacion("Terminal / Origen", 0.0, 0.0);
+                    md.modelo.Ubicacion destino = new md.modelo.Ubicacion("Centro / Destino", 0.0, 0.0);
+                    md.modelo.Viaje viajeTerminado = new md.modelo.Viaje(null, null, origen, destino);
+                    
+                    dao.guardarViajeRealizado(viajeTerminado, usuarioActual.getEmail());
+                    System.out.println("💾 [DAO] ¡Viaje guardado exitosamente en la tabla de servicios!");
+                } else {
+                    System.out.println("AVISO: usuarioActual es NULL, no se pudo guardar el registro.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            // ----------------------------------------------------
+
             btnAceptarViaje.setText("Aceptar Viaje Seleccionado");
         }
     }
@@ -168,6 +198,15 @@ public class PanelConductorController implements Initializable {
             javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/PanelHistorialConductor.fxml"));
             javafx.scene.Parent root = loader.load();
+            
+            PanelHistorialConductorController historialController = loader.getController();
+            if (historialController != null && usuarioActual != null) {
+                // Le pasamos el email del conductor actual para que haga la consulta en la BD
+                // (Asegurate de que usuarioActual tenga un método como getEmail() o el identificador que uses)
+                historialController.initData(usuarioActual.getEmail()); 
+            }
+            // ------------------------------------------------------------------
+
             stage.setTitle("Movilidad Digital - Historial de Viajes");
             stage.setScene(new javafx.scene.Scene(root));
             stage.show();

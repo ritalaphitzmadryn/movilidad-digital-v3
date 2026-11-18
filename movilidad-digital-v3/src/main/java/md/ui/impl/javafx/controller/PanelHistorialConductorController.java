@@ -8,7 +8,6 @@ import javafx.scene.control.ListView;
 import javafx.stage.Stage;
 import md.modelo.Viaje;
 import md.modelo.Usuario;
-import md.datos.DAO.ServicioDAO; // O el DAO/Gestor desde donde obtengas los viajes
 
 import java.util.List;
 
@@ -20,11 +19,11 @@ public class PanelHistorialConductorController {
     private String emailConductor;
 
     /**
-     * Recibe el email o datos del conductor logueado actualmente
+     * Recibe el email del conductor logueado actualmente y carga su historial
      */
     public void initData(String emailConductor) {
-        this.emailConductor = emailConductor;
-        cargarHistorial();
+        this.emailConductor = emailConductor; // 1. Guardamos el email correctamente
+        cargarHistorial();                     // 2. Disparamos la carga una vez que tenemos el email
     }
 
     @FXML
@@ -37,20 +36,16 @@ public class PanelHistorialConductorController {
                 if (empty || viaje == null) {
                     setText(null);
                 } else {
-                    // Extraer nombre del cliente (asumiendo que Usuario tiene un método getNombre() o similar)
                     String nombreCliente = "Cliente Desconocido";
                     if (viaje.getCliente() != null) {
-                        // Ajustá el método según cómo devuelva el nombre tu clase Usuario (ej: getNombre(), getNombreCompleto(), etc.)
                         nombreCliente = viaje.getCliente().toString(); 
                     }
 
-                    // Calcular kilómetros usando el método que ya tiene la clase Viaje/Ubicacion
                     double km = 0.0;
                     if (viaje.getOrigen() != null && viaje.getDestino() != null) {
                         km = viaje.getOrigen().calcularDistancia(viaje.getDestino());
                     }
 
-                    // Formatear el texto que se verá en cada ítem de la lista
                     setText(String.format("👤 Cliente: %s\n📍 Ruta: %s ➔ %s\n📏 Distancia: %.2f km  |  💰 Costo: $%.2f [%s]",
                             nombreCliente,
                             viaje.getOrigen() != null ? viaje.getOrigen().getDireccion() : "Origen",
@@ -62,20 +57,25 @@ public class PanelHistorialConductorController {
                 }
             }
         });
-
-        // Carga inicial por defecto (si no se invoca initData antes)
-        cargarHistorial();
     }
 
     private void cargarHistorial() {
         try {
-            // 1. Obtener la lista de viajes desde tu DAO o gestor de datos filtrando por el conductor
-            // Ejemplo:
-            // List<Viaje> listaViajes = ServicioDAO.obtenerViajesDelConductor(emailConductor);
+            if (emailConductor == null) return;
+
+            String url = "jdbc:postgresql://pgs.fi.mdn.unp.edu.ar:30000/bd1";
+            String user = "estudiante";
+            String password = "bd1estudiante";
             
-            // 2. Convertir a ObservableList y cargar en el ListView
-            // ObservableList<Viaje> items = FXCollections.observableArrayList(listaViajes);
-            // listHistorialViajes.setItems(items);
+            md.datos.DAO.bd.ConexionBD conexion = new md.datos.DAO.bd.ConexionBD(url, user, password);
+            md.datos.DAO.bd.ServicioDaoBd dao = new md.datos.DAO.bd.ServicioDaoBd(conexion);
+            
+            // 3. Obtenemos la lista desde la base de datos
+            List<Viaje> historial = dao.cargarHistorialPorConductor(emailConductor);
+            
+            // 4. Convertimos a ObservableList y cargamos en el ListView
+            ObservableList<Viaje> items = FXCollections.observableArrayList(historial);
+            listHistorialViajes.setItems(items);
 
         } catch (Exception e) {
             e.printStackTrace();
