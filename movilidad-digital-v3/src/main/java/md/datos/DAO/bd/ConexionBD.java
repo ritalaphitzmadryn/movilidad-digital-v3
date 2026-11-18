@@ -4,26 +4,33 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-/**
- * Datos de conexión JDBC compartidos por los DAO de la familia SQL.
- * Abrir una conexión requiere URL, credenciales y un driver compatibles con el servidor.
- * MySQL y PostgreSQL utilizan esta misma clase y DAO JDBC. Otro gestor exige
- * comprobar también la compatibilidad del esquema, las consultas y los tipos;
- * la presencia de un driver por sí sola no garantiza esa compatibilidad.
- */
 public class ConexionBD {
+    private String url;
+    private String user;
+    private String password;
 
-    private final String url;
-    private final String usuario;
-    private final String password;
-
-    public ConexionBD(String url, String usuario, String password) {
+    // Constructor que requiere DAOLoader
+    public ConexionBD(String url, String user, String password) {
         this.url = url;
-        this.usuario = usuario;
+        this.user = user;
         this.password = password;
     }
 
-    public Connection obtenerConexion() throws SQLException {
-        return DriverManager.getConnection(url, usuario, password);
+    // Método para obtener la conexión activa
+    public Connection conectar() throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver");
+            return DriverManager.getConnection(url, user, password);
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("No se encontró el driver JDBC de PostgreSQL", e);
+        }
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public String getUser() {
+        return user;
     }
 }

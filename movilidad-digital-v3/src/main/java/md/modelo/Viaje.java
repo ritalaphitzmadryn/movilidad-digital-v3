@@ -35,6 +35,9 @@ public class Viaje {
         this.costoCalculado = calcularCostoEstimado();
         this.registros = new ArrayList<>();
     }
+    public Viaje(Usuario cliente, Servicio servicio, Ubicacion origen, Ubicacion destino) {
+        this(cliente, servicio, origen, destino, new ArrayList<>());
+    }
 
     // Obtiene la distancia y el tiempo estimado desde las entidades Ubicacion
     // invoca al metodo calcularCosto de la clase Servicio.
@@ -136,4 +139,10 @@ public class Viaje {
     public void setRolCancela(RolUsuario rolCancela) { this.rolCancela = rolCancela; }
     public List<RegistroViaje> getRegistroViaje() {return registros; }
 
+    @Override
+    public String toString() {
+        String origenStr = (origen != null) ? origen.getDireccion() : "Origen";
+        String destinoStr = (destino != null) ? destino.getDireccion() : "Destino";
+        return "Viaje #" + id.toString().substring(0, 6) + ": " + origenStr + " ➔ " + destinoStr + " ($" + String.format("%.2f", costoCalculado) + ")";
+    }
 }

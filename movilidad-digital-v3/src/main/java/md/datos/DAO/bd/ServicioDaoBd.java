@@ -4,11 +4,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import md.datos.DAO.*;
 import md.modelo.TipoServicio;
 import md.modelo.TipoVehiculo;
+import md.modelo.Viaje;
 import md.modelo.CategoriaVehiculo;
 import md.modelo.Servicio;
 
@@ -28,7 +30,7 @@ public class ServicioDaoBd implements ServicioDAO{
         List<Servicio> lista = new ArrayList<>();
         String sql = "SELECT categoriaVehiculo, nombre, precioKm, precioMinuto, tarifaBase, tipoServicio, tipoVehiculo FROM servicio ORDER BY nombre";
         
-        try (Connection c = conexion.obtenerConexion();
+        try (Connection c = conexion.conectar();
              PreparedStatement ps = c.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
            
@@ -56,7 +58,7 @@ public class ServicioDaoBd implements ServicioDAO{
     	Servicio servicio = null;
     	String sql = "SELECT categoriaVehiculo, nombre, precioKm, precioMinuto, tarifaBase, tipoServicio, tipoVehiculo FROM servicio WHERE nombre = ?";
         
-        try (Connection c = conexion.obtenerConexion();
+        try (Connection c = conexion.conectar();
              PreparedStatement ps = c.prepareStatement(sql)){
         		
         	// 1. Asignamos el parámetro al signo de interrogación (?) de la consulta
@@ -89,7 +91,7 @@ public class ServicioDaoBd implements ServicioDAO{
         String sql = "INSERT INTO servicio (categoriaVehiculo, nombre, precioKm, "
         				+ "precioMinuto, tarifaBase, tipoServicio, tipoVehiculo)";
         
-        try (Connection c = conexion.obtenerConexion();
+        try (Connection c = conexion.conectar();
              PreparedStatement ps = c.prepareStatement(sql)){
         		
         	// 1. Asignamos cada atributo del servicio al signo '?' correspondiente
@@ -114,5 +116,28 @@ public class ServicioDaoBd implements ServicioDAO{
         for (Servicio servicio : servicios) {
         	guardar(servicio);
         }
+    }
+    public List<Viaje> cargarViajesDisponiblesDesdeBd() {
+        List<Viaje> lista = new ArrayList<>();
+        String sql = "SELECT id, origen, destino, distancia, estado FROM viaje WHERE estado = 'PENDIENTE'"; // Ajusta la tabla/estado según tu esquema
+
+        try (Connection conn = conexion.conectar();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String origen = rs.getString("origen");
+                String destino = rs.getString("destino");
+                double distancia = rs.getDouble("distancia");
+                
+                // Instancias tu objeto Viaje según el constructor de tu modelo
+                Viaje viaje = new Viaje(id, origen, destino, distancia);
+                lista.add(viaje);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return lista;
     }
 }

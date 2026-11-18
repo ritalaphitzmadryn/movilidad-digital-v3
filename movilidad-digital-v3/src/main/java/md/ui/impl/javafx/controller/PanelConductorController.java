@@ -1,6 +1,7 @@
 package md.ui.impl.javafx.controller;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
@@ -9,6 +10,7 @@ import javafx.scene.control.Label;
 import md.modelo.Conductor;
 import md.modelo.EstadoConductor;
 import md.modelo.Usuario;
+import md.ui.impl.javafx.JavaFXUserInterface;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -81,26 +83,6 @@ public class PanelConductorController implements Initializable {
         }
     }
 
-    @FXML
-    private void handleAceptarViaje() {
-        String viajeSeleccionado = listViajesDisponibles.getSelectionModel().getSelectedItem();
-        
-        if (viajeSeleccionado != null) {
-            System.out.println("¡Viaje aceptado con éxito!: " + viajeSeleccionado);
-            
-            // Al aceptar el viaje, el conductor pasa automáticamente a VIAJE_A_ORIGEN según el diagrama
-            if (conductorActual != null) {
-                conductorActual.setEstadoConductor(EstadoConductor.VIAJE_A_ORIGEN);
-                actualizarTextoEstado(EstadoConductor.VIAJE_A_ORIGEN);
-            }
-            
-            // Removemos el viaje de la lista de disponibles
-            listViajesDisponibles.getItems().remove(viajeSeleccionado);
-        } else {
-            System.out.println("Seleccioná un viaje de la lista para poder aceptarlo.");
-        }
-    }
-
     private void actualizarTextoEstado(EstadoConductor estado) {
         if (lblEstadoConductor == null) return;
         
@@ -134,6 +116,79 @@ public class PanelConductorController implements Initializable {
                 "Viaje #1: Terminal ➔ Centro (Aprox. 2.5 km)",
                 "Viaje #2: UNPSJB ➔ Costanera (Aprox. 4.0 km)"
             );
+        }
+    }
+    @FXML
+    private void handleAceptarViaje() {
+        if (conductorActual == null) return;
+
+        EstadoConductor estadoActual = conductorActual.getEstadoConductor();
+
+        if (estadoActual == EstadoConductor.DISPONIBLE || estadoActual == EstadoConductor.FUERA_DE_SERVICIO) {
+            // FASE 1: Acepta el viaje de la lista
+            String viajeSeleccionado = listViajesDisponibles.getSelectionModel().getSelectedItem();
+            
+            if (viajeSeleccionado != null) {
+                System.out.println("¡Viaje aceptado con éxito!: " + viajeSeleccionado);
+                
+                // Cambia a viaje a origen
+                conductorActual.setEstadoConductor(EstadoConductor.VIAJE_A_ORIGEN);
+                actualizarTextoEstado(EstadoConductor.VIAJE_A_ORIGEN);
+                
+                // Removemos el viaje de la lista de disponibles
+                listViajesDisponibles.getItems().remove(viajeSeleccionado);
+                
+                // Cambiamos el texto del botón para guiar al conductor al siguiente paso
+                btnAceptarViaje.setText("Confirmar Llegada a Destino / Finalizar");
+            } else {
+                System.out.println("Seleccioná un viaje de la lista para poder aceptarlo.");
+            }
+            
+        } else if (estadoActual == EstadoConductor.VIAJE_A_ORIGEN) {
+            // FASE 2: El conductor llegó al origen y arranca hacia el destino
+            conductorActual.setEstadoConductor(EstadoConductor.VIAJE_A_DESTINO);
+            actualizarTextoEstado(EstadoConductor.VIAJE_A_DESTINO);
+            System.out.println("Trayecto en curso hacia el destino...");
+            btnAceptarViaje.setText("Finalizar Viaje");
+            
+        } else if (estadoActual == EstadoConductor.VIAJE_A_DESTINO) {
+            // FASE 3: Se completa el viaje, vuelve a estar disponible y se resetea el botón
+            conductorActual.setEstadoConductor(EstadoConductor.DISPONIBLE);
+            actualizarTextoEstado(EstadoConductor.DISPONIBLE);
+            System.out.println("¡Viaje finalizado con éxito! Conductor nuevamente disponible.");
+            
+            btnAceptarViaje.setText("Aceptar Viaje Seleccionado");
+            
+            // Opcional: Aquí podrías abrir una ventana de calificación o resumen si lo deseas
+            // JavaFXUserInterface.cambiarVista("/ui/javafx/vistas/PanelCalificacion.fxml", "Calificar Viaje");
+        } else if (estadoActual == EstadoConductor.VIAJE_A_DESTINO) {
+            // FASE 3: Se completa el viaje
+            conductorActual.setEstadoConductor(EstadoConductor.DISPONIBLE);
+            actualizarTextoEstado(EstadoConductor.DISPONIBLE);
+            System.out.println("¡Viaje finalizado con éxito! Conductor nuevamente disponible.");
+            
+            // VOLVER A LA PANTALLA PRINCIPAL (LOGIN)
+            JavaFXUserInterface.cambiarVista("/ui/javafx/vistas/Login.fxml", "Movilidad Digital - Iniciar Sesión");
+        }
+    }
+    
+    @FXML
+    private void handleVolverLogin(javafx.event.ActionEvent event) {
+        try {
+            // 1. Obtenemos el Stage (ventana) actual directamente desde el botón presionado
+            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+            
+            // 2. Cargamos el archivo FXML del Login
+            javafx.fxml.FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/Login.fxml"));
+            javafx.scene.Parent root = loader.load();
+            
+            // 3. Asignamos la nueva escena y título
+            stage.setTitle("Movilidad Digital - Iniciar Sesión");
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.show();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

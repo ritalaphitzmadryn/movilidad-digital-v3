@@ -10,9 +10,10 @@ import md.ui.api.IInterfazUsuario;
 
 public class JavaFXUserInterface implements IInterfazUsuario {
 
+    private static Stage primaryStageStatic;
+
     @Override
     public void iniciar() {
-        // Lanza la aplicación JavaFX interna sin que esta clase herede de Application
         Application.launch(AppFX.class);
     }
 
@@ -22,17 +23,40 @@ public class JavaFXUserInterface implements IInterfazUsuario {
         Platform.exit();
     }
 
-    // Clase interna que maneja el ciclo de vida de JavaFX
     public static class AppFX extends Application {
         @Override
         public void start(Stage primaryStage) throws Exception {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/Login.fxml"));
-            Parent root = loader.load();
+            JavaFXUserInterface.primaryStageStatic = primaryStage;
+            cargarVistaInicial("/ui/javafx/vistas/Login.fxml", "Movilidad Digital - Iniciar Sesión");
+        }
+    }
 
-            primaryStage.setTitle("Movilidad Digital - Iniciar Sesión");
-            primaryStage.setScene(new Scene(root));
-            primaryStage.setResizable(false);
-            primaryStage.show();
+    // Método centralizado para cambiar de ventana/escena desde cualquier controlador
+    public static void cambiarVista(String fxmlPath, String tituloVentana) {
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(JavaFXUserInterface.class.getResource(fxmlPath));
+                Parent root = loader.load();
+                
+                primaryStageStatic.setTitle(tituloVentana);
+                primaryStageStatic.setScene(new Scene(root));
+                primaryStageStatic.show();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    private static void cargarVistaInicial(String fxmlPath, String titulo) {
+        try {
+            FXMLLoader loader = new FXMLLoader(JavaFXUserInterface.class.getResource(fxmlPath));
+            Parent root = loader.load();
+            primaryStageStatic.setTitle(titulo);
+            primaryStageStatic.setScene(new Scene(root));
+            primaryStageStatic.setResizable(false);
+            primaryStageStatic.show();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

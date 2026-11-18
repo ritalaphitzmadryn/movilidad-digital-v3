@@ -1,121 +1,123 @@
 package md.datos.DAO.bd;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import md.datos.DAO.UsuariosDAO;
+import md.modelo.Usuario;
+import md.modelo.Conductor;
+import md.modelo.Vehiculo;
+import md.modelo.RolUsuario;
+
+import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
-
-import md.datos.DAO.UsuariosDAO;
-import md.modelo.RolUsuario;
-import md.modelo.Usuario;
 
 public class UsuariosDaoBd implements UsuariosDAO {
 
     private final ConexionBD conexion;
+    private final VehiculosDaoBd vehiculosDAO;
 
+    // Constructor que recibe la conexión desde la fábrica BdDAOFactory
     public UsuariosDaoBd(ConexionBD conexion) {
         this.conexion = conexion;
+        this.vehiculosDAO = new VehiculosDaoBd(conexion);
     }
 
     @Override
     public Map<String, Usuario> cargarTodos() {
-        Map<String, Usuario> mapa = new HashMap<>();
-        String sql = "SELECT id, nombre, telefono, email, rolActivo FROM usuario";
+        Map<String, Usuario> usuarios = new HashMap<>();
         
-        try (Connection c = conexion.obtenerConexion();
-             PreparedStatement ps = c.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-           
+        // 1. Cargamos todos los vehículos directamente (cargarTodos() ya devuelve un Map<String, Vehiculo>)
+        Map<String, Vehiculo> mapaVehiculos = vehiculosDAO.cargarTodos();
+
+        // 2. Consultamos la tabla de usuarios de la cátedra
+        String sqlUsuarios = "SELECT email, nombre, telefono, licencia_conducir FROM usuario";
+
+        try (Connection conn = conexion.conectar();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sqlUsuarios)) {
+
             while (rs.next()) {
-                Usuario usuario = new Usuario(
-                    rs.getString("id"),
-                    rs.getString("nombre"),
-                    rs.getString("telefono"),
-                    rs.getString("email")
-                );
-                
-             // Mapeamos el rol activo respetando las restricciones de negocio
-                String rolStr = rs.getString("rolActivo");
-                if (rolStr != null) {
-                    RolUsuario rol = RolUsuario.valueOf(rolStr);
-                    if (rol == RolUsuario.CONDUCTOR) {
-                        // Si es conductor, la regla de Usuario exige inicializarlo antes
-                        // usuario.altaConductor("LICENCIA_EJEMPLO", vehiculoEjemplo);
-                    }
-                    usuario.cambiarRolActivo(rol);
+                String email = rs.getString("email");
+                String nombre = rs.getString("nombre");
+                String telefono = rs.getString("telefono");
+                String licencia = rs.getString("licencia_conducir");
+
+                // Usamos el email como ID
+                String id = email; 
+
+                // Instanciamos respetando tu constructor exacto de Usuario
+                Usuario usuario = new Usuario(id, nombre, telefono, email);
+
+                // Si tiene licencia registrada, le damos de alta el perfil de conductor
+                if (licencia != null && !licencia.trim().isEmpty()) {
+                    // Buscamos si tiene un vehículo asociado en la tabla intermedia 'conductor_vehiculo'
+                    Vehiculo vehiculoAsociado = buscarVehiculoDeConductor(conn, email, mapaVehiculos);
+                    
+                    // Invocamos el método de tu clase Usuario
+                    usuario.altaConductor(licencia, vehiculoAsociado);
                 }
-                
-                // Usamos el id como la clave del Map y el objeto como valor
-                mapa.put(usuario.getId(), usuario);
+
+                usuarios.put(email, usuario);
             }
-        } 
-        catch (SQLException e) {
-            throw new RuntimeException("Error al cargar los usuarios desde la base de datos", e); 
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        return mapa;
+        return usuarios;
     }
 
-    @Override
-    public Usuario buscarPorId(String id) {
-        Usuario usuario = null;
-        String sql = "SELECT id, nombre, telefono, email, rolActivo FROM usuario WHERE id = ?";
-        
-        try (Connection c = conexion.obtenerConexion();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-                
-            ps.setString(1, id);
-        
-            try (ResultSet rs = ps.executeQuery()) {
+    private Vehiculo buscarVehiculoDeConductor(Connection conn, String email, Map<String, Vehiculo> mapaVehiculos) {
+        String sql = "SELECT patente FROM conductor_vehiculo WHERE email = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    usuario = new Usuario(
-                        rs.getString("id"),
-                        rs.getString("nombre"),
-                        rs.getString("telefono"),
-                        rs.getString("email")
-                    );
-                    String rolStr = rs.getString("rolActivo");
-                    if (rolStr != null) {
-                        RolUsuario rol = RolUsuario.valueOf(rolStr);
-                        if (rol == RolUsuario.CONDUCTOR) {
-                            // usuario.altaConductor("LICENCIA_EJEMPLO", vehiculoEjemplo);
-                        }
-                        usuario.cambiarRolActivo(rol);
-                    }
+                    String patente = rs.getString("patente");
+                    return mapaVehiculos.get(patente);
                 }
             }
-        } 
-        catch (SQLException e) {
-            throw new RuntimeException("Error al buscar el usuario por ID: " + id, e); 
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        return usuario;
+        return null;
     }
 
     @Override
     public void guardar(Usuario usuario) {
-        String sql = "INSERT INTO usuario (id, nombre, telefono, email, rolActivo) VALUES (?, ?, ?, ?, ?)";
-        
-        try (Connection c = conexion.obtenerConexion();
-             PreparedStatement ps = c.prepareStatement(sql)) {
+        String sqlUsuario = "INSERT INTO usuario (email, nombre, telefono, licencia_conducir) VALUES (?, ?, ?, ?) " +
+                            "ON CONFLICT (email) DO UPDATE SET nombre = EXCLUDED.nombre, telefono = EXCLUDED.telefono, licencia_conducir = EXCLUDED.licencia_conducir";
+
+        try (Connection conn = conexion.conectar();
+             PreparedStatement pstmt = conn.prepareStatement(sqlUsuario)) {
+
+            pstmt.setString(1, usuario.getEmail());
+            pstmt.setString(2, usuario.getNombre());
+            pstmt.setString(3, usuario.getTelefono());
             
-            ps.setString(1, usuario.getId());
-            ps.setString(2, usuario.getNombre());
-            ps.setString(3, usuario.getTelefono());
-            ps.setString(4, usuario.getEmail());
-            ps.setString(5, usuario.getRolActivo().name());
-            
-            ps.executeUpdate();
-        } 
-        catch (SQLException e) {
-            throw new RuntimeException("Error al guardar el usuario: " + usuario.getId(), e); 
+            // Usamos getLicenciaConducir() conforme a tu clase Conductor
+            if (usuario.getConductor() != null) {
+                pstmt.setString(4, usuario.getConductor().getLicenciaConducir());
+            } else {
+                pstmt.setNull(4, Types.VARCHAR);
+            }
+
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     @Override
+    public Usuario buscarPorId(String id) {
+        Map<String, Usuario> todos = cargarTodos();
+        return todos.get(id);
+    }
+
+    @Override
     public void guardarTodos(Map<String, Usuario> usuarios) {
-        for (Usuario usuario : usuarios.values()) {
-            guardar(usuario);
+        if (usuarios != null) {
+            for (Usuario u : usuarios.values()) {
+                guardar(u);
+            }
         }
     }
 }
