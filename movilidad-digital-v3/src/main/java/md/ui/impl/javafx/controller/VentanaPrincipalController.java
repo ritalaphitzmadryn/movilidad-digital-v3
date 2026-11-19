@@ -5,6 +5,10 @@ import java.text.MessageFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+
+import com.graphhopper.ResponsePath;
+import com.graphhopper.util.PointList;
+
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.fxml.FXML;
@@ -270,6 +274,15 @@ public class VentanaPrincipalController implements Initializable {
             if (gestor == null) return;
 
             double distanciaViajeKm = 0.0;
+            com.graphhopper.ResponsePath rutaViajeGH = null;
+            try {
+                rutaViajeGH = md.ui.impl.javafx.map.RutaGraphHopperService.calcularRuta(
+                        latOrigen, lonOrigen, latDestino, lonDestino
+                );
+                distanciaViajeKm = rutaViajeGH.getDistance() / 1000.0;
+            } catch (Exception exGH) {
+                System.err.println("Aviso GraphHopper (usando respaldo): " + exGH.getMessage());
+            }
             if (rutasService != null) {
                 distanciaViajeKm = rutasService.calcularDistanciaKm(latOrigen, lonOrigen, latDestino, lonDestino);
             }
@@ -615,4 +628,17 @@ public class VentanaPrincipalController implements Initializable {
             System.err.println("Error al actualizar la flota: " + e.getMessage());
         }
     }    
+    private String pointListToJson(ResponsePath path, double lat1, double lon1, double lat2, double lon2) {
+        if (path != null && path.getPoints() != null && !path.getPoints().isEmpty()) {
+            PointList pts = path.getPoints();
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < pts.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(String.format(Locale.US, "[%.6f, %.6f]", pts.getLat(i), pts.getLon(i)));
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        return String.format(Locale.US, "[[%f, %f], [%f, %f]]", lat1, lon1, lat2, lon2);
+    }
 }

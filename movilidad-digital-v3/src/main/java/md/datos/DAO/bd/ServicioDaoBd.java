@@ -169,21 +169,23 @@ public class ServicioDaoBd implements ServicioDAO{
     }
     
     public void guardarViajeRealizado(md.modelo.Viaje viaje, String emailConductor) {
-        // Especificamos el esquema movilidad_digital.servicio
-        String sql = "INSERT INTO movilidad_digital.servicio (nombre, tarifa_base, precio_km, precio_minuto, tipo_vehiculo, categoria_vehiculo, tipo_servicio) VALUES (?, ?, ?, ?, 1, 1, 1)";
+        
+    	String sql = "INSERT INTO movilidad_digital.servicio (nombre, tarifa_base, precio_km, precio_minuto, tipo_vehiculo, categoria_vehiculo, tipo_servicio) VALUES (?, ?, ?, ?, 1, 1, 1)";
 
         try (Connection c = conexion.conectar();
              PreparedStatement ps = c.prepareStatement(sql)) {
             
             String origenStr = viaje.getOrigen() != null ? viaje.getOrigen().getDireccion() : "Origen";
             String destinoStr = viaje.getDestino() != null ? viaje.getDestino().getDireccion() : "Destino";
-            
-            // Armamos un texto compacto y nos aseguramos de que no supere los 50 caracteres
-            String descripcion = origenStr + " -> " + destinoStr;
-            if (descripcion.length() > 50) {
-                descripcion = descripcion.substring(0, 47) + "...";
+            String sufijo = "#" + (System.currentTimeMillis() % 100000);
+            String base = origenStr + " -> " + destinoStr;
+            int maxBaseLen = 50 - sufijo.length();
+            if (maxBaseLen < 0) maxBaseLen = 0;
+            if (base.length() > maxBaseLen) {
+                base = base.substring(0, Math.max(0, maxBaseLen - 3)) + "...";
             }
-            
+            String descripcion = base + sufijo;
+          
             ps.setString(1, descripcion);
             ps.setDouble(2, viaje.getCostoCalculado());
             ps.setDouble(3, 0.0);

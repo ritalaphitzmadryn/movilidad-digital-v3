@@ -123,16 +123,16 @@
             map.invalidateSize(true);
         }
 
-        function trazarRutasCompletas(latMovil, lonMovil, latOrig, lonOrig, latDest, lonDest, coordsAcercamiento, coordsTraslado) {
+        function trazarRutasCompletas(latM, lonM, latO, lonO, latD, lonD, acercamiento, traslado) {
             grupoRutas.clearLayers();
 
             if (markerOrigen) map.removeLayer(markerOrigen);
             if (markerDestino) map.removeLayer(markerDestino);
             if (markerMovil) map.removeLayer(markerMovil);
 
-            var o = L.latLng(latOrig, lonOrig);
-            var d = L.latLng(latDest, lonDest);
-            var m = L.latLng(latMovil, lonMovil);
+            var o = L.latLng(latO, lonO);
+            var d = L.latLng(latD, lonD);
+            var m = L.latLng(latM, lonM);
 
             markerOrigen = L.marker(o).addTo(map).bindPopup("<b>Origen</b>");
             markerDestino = L.marker(d).addTo(map).bindPopup("<b>Destino</b>");
@@ -140,14 +140,14 @@
                 icon: L.divIcon({className: 'movil-icon', html: '🚗', iconSize: [24, 24]})
             }).addTo(map).bindPopup("<b>Móvil Más Cercano</b>");
 
-            if (coordsAcercamiento && coordsAcercamiento.length > 0) {
-                L.polyline(coordsAcercamiento, { color: '#1763c0', weight: 4, opacity: 0.8 }).addTo(grupoRutas);
+            if (acercamiento && acercamiento.length > 0) {
+                L.polyline(acercamiento, { color: '#1763c0', weight: 4, opacity: 0.8 }).addTo(grupoRutas);
             } else {
                 L.polyline([m, o], { color: '#1763c0', weight: 3, dashArray: '5, 5' }).addTo(grupoRutas);
             }
 
-            if (coordsTraslado && coordsTraslado.length >0) {
-                L.polyline(coordsTraslado, { color: '#149566', weight: 5, opacity: 0.9 }).addTo(grupoRutas);
+            if (traslado && traslado.length >0) {
+                L.polyline(traslado, { color: '#149566', weight: 5, opacity: 0.9 }).addTo(grupoRutas);
             } else {
                 L.polyline([o, d], { color: '#149566', weight: 5 }).addTo(grupoRutas);
             }

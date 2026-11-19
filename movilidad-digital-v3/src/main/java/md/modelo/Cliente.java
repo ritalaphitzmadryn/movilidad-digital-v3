@@ -26,4 +26,8 @@ public class Cliente {
     public List<Viaje> getViajes() {
         return viajes;
     }
+    @Override
+    public String toString() {
+        return "Cliente (" + viajes.size() + " viaje/s)";
+    }
 }

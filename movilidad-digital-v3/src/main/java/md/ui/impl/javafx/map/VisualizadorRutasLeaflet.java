@@ -110,4 +110,46 @@ public class VisualizadorRutasLeaflet {
             System.out.println("El mapa aún se está cargando.");
         }
     }
+    public void mostrarRutaGraphHopper(double latOrigen, double lonOrigen, double latDestino, double lonDestino) {
+        com.graphhopper.util.PointList puntos = RutaGraphHopperService.obtenerPuntosRuta(
+                latOrigen, lonOrigen, latDestino, lonDestino
+        );
+        if (puntos == null || puntos.isEmpty()) {
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < puntos.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(java.util.Locale.US)
+              .append("[")
+              .append(String.format(java.util.Locale.US, "%.6f", puntos.getLat(i)))
+              .append(",")
+              .append(String.format(java.util.Locale.US, "%.6f", puntos.getLon(i)))
+              .append("]");
+        }
+        sb.append("]");
+
+        String latLngsJson = sb.toString();
+
+        javafx.application.Platform.runLater(() -> {
+            if (cargado && webEngine != null) {
+                try {
+                    String js =
+                        "(function() {" +
+                        "  if (typeof map === 'undefined' || !map) return;" +
+                        "  if (window.rutaGHLayer) { map.removeLayer(window.rutaGHLayer); }" +
+                        "  var coords = " + latLngsJson + ";" +
+                        "  window.rutaGHLayer = L.polyline(coords, {color: '#1976d2', weight: 5, opacity: 0.85}).addTo(map);" +
+                        "  map.fitBounds(window.rutaGHLayer.getBounds(), {padding: [25, 25]});" +
+                        "})();";
+                    webEngine.executeScript(js);
+                } catch (Exception e) {
+                    System.err.println("Error al dibujar ruta de GraphHopper en Leaflet: " + e.getMessage());
+                }
+            } else {
+                System.out.println("El mapa aún se está cargando.");
+            }
+        });
+    }
 }
