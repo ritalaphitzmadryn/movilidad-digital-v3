@@ -28,13 +28,19 @@ public class RutaGraphHopperService {
 
         Path cacheDir = Paths.get("target", "graphhopper-cache");
 
+        System.out.println("🗺️ [GraphHopper] Inicializando desde OSM: " + osmPath.toAbsolutePath());
+        System.out.flush();
+
         GraphHopper gh = new GraphHopper();
         gh.setOSMFile(osmPath.toString());
         gh.setGraphHopperLocation(cacheDir.toString());
-        gh.setProfiles(new Profile("car").setVehicle("car").setWeighting("fastest"));
+        gh.setEncodedValuesString("car_access, car_average_speed");
+        gh.setProfiles(new Profile("car").setWeighting("fastest"));
         gh.importOrLoad();
 
         hopper = gh;
+        System.out.println("✅ [GraphHopper] Grafo listo en caché: " + cacheDir.toAbsolutePath());
+        System.out.flush();
         return hopper;
     }
 
@@ -48,10 +54,22 @@ public class RutaGraphHopperService {
         if (res.hasErrors()) {
             throw new RuntimeException("Error calculando ruta con GraphHopper: " + res.getErrors());
         }
-        return res.getBest();
+
+        ResponsePath best = res.getBest();
+        if (best == null || best.getPoints() == null || best.getPoints().isEmpty()) {
+            throw new RuntimeException("GraphHopper no devolvió geometría para el trayecto solicitado.");
+        }
+        return best;
     }
 
     public static PointList obtenerPuntosRuta(double latOrigen, double lonOrigen, double latDestino, double lonDestino) {
         return calcularRuta(latOrigen, lonOrigen, latDestino, lonDestino).getPoints();
+    }
+
+    public static synchronized void limpiarInstancia() {
+        if (hopper != null) {
+            hopper.close();
+            hopper = null;
+        }
     }
 }

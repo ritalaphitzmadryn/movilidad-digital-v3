@@ -269,21 +269,27 @@ public class VentanaPrincipalController implements Initializable {
                 alert.showAndWait();
                 return;
             }
-            
+
             GestorMovilidad gestor = Aplicacion.getGestor();
             if (gestor == null) return;
 
             double distanciaViajeKm = 0.0;
-            com.graphhopper.ResponsePath rutaViajeGH = null;
+            ResponsePath rutaViajeGH = null;
+            boolean usoGraphHopperViaje = false;
+
             try {
                 rutaViajeGH = md.ui.impl.javafx.map.RutaGraphHopperService.calcularRuta(
                         latOrigen, lonOrigen, latDestino, lonDestino
                 );
                 distanciaViajeKm = rutaViajeGH.getDistance() / 1000.0;
+                usoGraphHopperViaje = true;
+                System.out.println("🗺️ [GraphHopper] Distancia viaje: " + String.format(Locale.US, "%.2f km", distanciaViajeKm));
             } catch (Exception exGH) {
                 System.err.println("Aviso GraphHopper (usando respaldo): " + exGH.getMessage());
+                exGH.printStackTrace();
             }
-            if (rutasService != null) {
+
+            if (!usoGraphHopperViaje && rutasService != null) {
                 distanciaViajeKm = rutasService.calcularDistanciaKm(latOrigen, lonOrigen, latDestino, lonDestino);
             }
 
@@ -292,25 +298,38 @@ public class VentanaPrincipalController implements Initializable {
             String categoriaElegida = cbTipoServicio != null ? cbTipoServicio.getValue() : "Standard";
 
             double menorDistanciaMovil = Double.MAX_VALUE;
-            double latMovil = latOrigen - 0.008; 
+            double latMovil = latOrigen - 0.008;
             double lonMovil = lonOrigen + 0.008;
             String patenteMovil = "AA-123-BB";
+            ResponsePath rutaAcercamientoGH = null;
 
             List<Usuario> usuarios = gestor.obtenerUsuarios();
             if (usuarios != null) {
                 for (Usuario u : usuarios) {
                     if (u.getConductor() != null) {
                         Conductor c = u.getConductor();
-                        double cLat = latOrigen + 0.015; 
+                        double cLat = latOrigen + 0.015;
                         double cLon = lonOrigen + 0.015;
-                        
-                        double dist = rutasService != null ? 
-                            rutasService.calcularDistanciaKm(cLat, cLon, latOrigen, lonOrigen) : 1.0;
+
+                        double dist = 1.0;
+                        ResponsePath rutaCandidataGH = null;
+                        try {
+                            rutaCandidataGH = md.ui.impl.javafx.map.RutaGraphHopperService.calcularRuta(
+                                    cLat, cLon, latOrigen, lonOrigen
+                            );
+                            dist = rutaCandidataGH.getDistance() / 1000.0;
+                        } catch (Exception exMovil) {
+                            System.err.println("Aviso GraphHopper móvil: " + exMovil.getMessage());
+                            if (rutasService != null) {
+                                dist = rutasService.calcularDistanciaKm(cLat, cLon, latOrigen, lonOrigen);
+                            }
+                        }
 
                         if (dist < menorDistanciaMovil) {
                             menorDistanciaMovil = dist;
                             latMovil = cLat;
                             lonMovil = cLon;
+                            rutaAcercamientoGH = rutaCandidataGH;
                             patenteMovil = c.getVehiculoActivo() != null ? c.getVehiculoActivo().getPatente() : "Móvil Genérico";
                         }
                     }
@@ -345,7 +364,7 @@ public class VentanaPrincipalController implements Initializable {
             Label lblTitulo = new Label(MessageFormat.format(headerTemplate, tipoServicioStr));
             lblTitulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;");
 
-            String detailsTemplate = bundle != null && bundle.containsKey("dialog.confirm.details") ? bundle.getString("dialog.confirm.details") : 
+            String detailsTemplate = bundle != null && bundle.containsKey("dialog.confirm.details") ? bundle.getString("dialog.confirm.details") :
                 "Vehículo seleccionado: {0} ({1})\n" +
                 "Distancia del trayecto: {2} km\n" +
                 "Tiempo Estimado: ~{3} min\n" +
@@ -390,14 +409,22 @@ public class VentanaPrincipalController implements Initializable {
 
             if (confirmado[0]) {
                 if (visualizadorMapa != null) {
-                    String geometriaCalleSimulada = String.format(
-                        Locale.US, 
-                        "[[%f, %f], [%f, %f], [%f, %f]]",
-                        latOrigen, lonOrigen,   
-                        latOrigen, lonDestino,  
-                        latDestino, lonDestino  
+                    String jsonAcercamiento = convertirPointListAJson(
+                            rutaAcercamientoGH != null ? rutaAcercamientoGH.getPoints() : null,
+                            latMovil, lonMovil, latOrigen, lonOrigen
                     );
-                    visualizadorMapa.trazarRutasCompletas(latMovil, lonMovil, latOrigen, lonOrigen, latDestino, lonDestino, geometriaCalleSimulada);
+                    String jsonTraslado = convertirPointListAJson(
+                            rutaViajeGH != null ? rutaViajeGH.getPoints() : null,
+                            latOrigen, lonOrigen, latDestino, lonDestino
+                    );
+
+                    visualizadorMapa.trazarRutasCompletas(
+                            latMovil, lonMovil,
+                            latOrigen, lonOrigen,
+                            latDestino, lonDestino,
+                            jsonAcercamiento,
+                            jsonTraslado
+                    );
                 }
 
                 mostrarResumenEHistorialViaje(distanciaViajeKm, costoTotal, patenteMovil, tipoServicioElegido, tipoVehiculoElegido, categoriaElegida, tiempoViajeMin);
@@ -409,6 +436,18 @@ public class VentanaPrincipalController implements Initializable {
         }
     }
 
+    private String convertirPointListAJson(PointList pts, double lat1, double lon1, double lat2, double lon2) {
+        if (pts != null && !pts.isEmpty()) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < pts.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(String.format(Locale.US, "[%.6f, %.6f]", pts.getLat(i), pts.getLon(i)));
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        return String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]", lat1, lon1, lat1, lon2, lat2, lon2);
+    }
     private void mostrarResumenEHistorialViaje(double distanciaKm, double costoTotal, String patenteMovil, TipoServicio tipoServicio, TipoVehiculo tipoVehiculo, String categoria, double tiempoMin) {
         Dialog<ButtonType> dialogo = new Dialog<>();
         dialogo.setTitle(bundle != null && bundle.containsKey("dialog.track.title") ? bundle.getString("dialog.track.title") : "Movilidad Digital - Seguimiento de mi pedido");

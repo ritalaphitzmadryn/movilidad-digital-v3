@@ -123,39 +123,46 @@
             map.invalidateSize(true);
         }
 
-        function trazarRutasCompletas(latM, lonM, latO, lonO, latD, lonD, acercamiento, traslado) {
-            grupoRutas.clearLayers();
+		function trazarRutasCompletas(latM, lonM, latO, lonO, latD, lonD, acercamiento, traslado) {
+		            grupoRutas.clearLayers();
+		            if (window.rutaGHLayer) {
+		                map.removeLayer(window.rutaGHLayer);
+		                window.rutaGHLayer = null;
+		            }
 
-            if (markerOrigen) map.removeLayer(markerOrigen);
-            if (markerDestino) map.removeLayer(markerDestino);
-            if (markerMovil) map.removeLayer(markerMovil);
+		            if (markerOrigen) map.removeLayer(markerOrigen);
+		            if (markerDestino) map.removeLayer(markerDestino);
+		            if (markerMovil) map.removeLayer(markerMovil);
 
-            var o = L.latLng(latO, lonO);
-            var d = L.latLng(latD, lonD);
-            var m = L.latLng(latM, lonM);
+		            var o = L.latLng(latO, lonO);
+		            var d = L.latLng(latD, lonD);
+		            var m = L.latLng(latM, lonM);
 
-            markerOrigen = L.marker(o).addTo(map).bindPopup("<b>Origen</b>");
-            markerDestino = L.marker(d).addTo(map).bindPopup("<b>Destino</b>");
-            markerMovil = L.marker(m, {
-                icon: L.divIcon({className: 'movil-icon', html: '🚗', iconSize: [24, 24]})
-            }).addTo(map).bindPopup("<b>Móvil Más Cercano</b>");
+		            markerOrigen = L.marker(o).addTo(map).bindPopup("<b>Origen</b>");
+		            markerDestino = L.marker(d).addTo(map).bindPopup("<b>Destino</b>");
+		            markerMovil = L.marker(m, {
+		                icon: L.divIcon({className: 'movil-icon', html: '🚗', iconSize: [24, 24]})
+		            }).addTo(map).bindPopup("<b>Móvil Más Cercano</b>");
 
-            if (acercamiento && acercamiento.length > 0) {
-                L.polyline(acercamiento, { color: '#1763c0', weight: 4, opacity: 0.8 }).addTo(grupoRutas);
-            } else {
-                L.polyline([m, o], { color: '#1763c0', weight: 3, dashArray: '5, 5' }).addTo(grupoRutas);
-            }
+		            var bounds = L.latLngBounds([o, d, m]);
 
-            if (traslado && traslado.length >0) {
-                L.polyline(traslado, { color: '#149566', weight: 5, opacity: 0.9 }).addTo(grupoRutas);
-            } else {
-                L.polyline([o, d], { color: '#149566', weight: 5 }).addTo(grupoRutas);
-            }
+		            if (Array.isArray(acercamiento) && acercamiento.length > 0) {
+		                var polyAcercamiento = L.polyline(acercamiento, { color: '#1763c0', weight: 4, opacity: 0.85 }).addTo(grupoRutas);
+		                bounds.extend(polyAcercamiento.getBounds());
+		            } else {
+		                L.polyline([m, o], { color: '#1763c0', weight: 3, dashArray: '5, 5' }).addTo(grupoRutas);
+		            }
 
-            var bounds = L.latLngBounds([o, d, m]);
-            map.fitBounds(bounds, { padding: [50, 50] });
-            map.invalidateSize(true);
-        }
+		            if (Array.isArray(traslado) && traslado.length > 0) {
+		                var polyTraslado = L.polyline(traslado, { color: '#149566', weight: 5, opacity: 0.9 }).addTo(grupoRutas);
+		                bounds.extend(polyTraslado.getBounds());
+		            } else {
+		                L.polyline([o, d], { color: '#149566', weight: 5 }).addTo(grupoRutas);
+		            }
+
+		            map.fitBounds(bounds, { padding: [50, 50] });
+		            map.invalidateSize(true);
+		        }
 
         window.addEventListener('resize', function() {
             map.invalidateSize(true);
