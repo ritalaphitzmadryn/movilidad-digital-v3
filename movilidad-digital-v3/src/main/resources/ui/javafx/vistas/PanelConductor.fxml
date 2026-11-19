@@ -30,5 +30,5 @@
     
     <!-- NUEVO: Botón para ver el historial de servicios -->
     <Button text="Ver Historial de Viajes" onAction="#handleVerHistorial" maxWidth="Infinity" style="-fx-base: #1565c0; -fx-text-fill: white;" />
-
+	<Button text="Volver al Inicio" onAction="#handleVolverInicio" maxWidth="Infinity" style="-fx-base: #455a64; -fx-text-fill: white;" />
     </VBox>

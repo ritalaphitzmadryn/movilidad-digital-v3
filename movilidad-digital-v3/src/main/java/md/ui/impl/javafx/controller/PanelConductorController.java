@@ -64,13 +64,15 @@ public class PanelConductorController implements Initializable {
             }
 
             actualizarTextoEstado(estadoActual);
-            tglDisponibilidad.setSelected(estadoActual == EstadoConductor.DISPONIBLE);
+            if (tglDisponibilidad != null) {
+                tglDisponibilidad.setSelected(estadoActual == EstadoConductor.DISPONIBLE);
+            }
         }
     }
 
     @FXML
     private void handleCambiarDisponibilidad() {
-        boolean activo = tglDisponibilidad.isSelected();
+        boolean activo = tglDisponibilidad != null && tglDisponibilidad.isSelected();
         EstadoConductor nuevoEstado = activo ? EstadoConductor.DISPONIBLE : EstadoConductor.FUERA_DE_SERVICIO;
 
         if (conductorActual != null) {
@@ -121,6 +123,7 @@ public class PanelConductorController implements Initializable {
             );
         }
     }
+
     private double[] obtenerCoordenadasConocidas(String lugar) {
         if (lugar == null) return null;
         String l = lugar.toLowerCase(Locale.ROOT);
@@ -140,45 +143,56 @@ public class PanelConductorController implements Initializable {
     }
 
     private void extraerDatosViajeSeleccionado(String textoViaje) {
+        origenActual = "Origen del viaje";
+        destinoActual = "Destino del viaje";
+        distanciaActualKm = 0.0;
+        costoActual = 2000.0;
+
         if (textoViaje == null || textoViaje.isBlank()) {
-            origenActual = "Origen del viaje";
-            destinoActual = "Destino del viaje";
-            distanciaActualKm = 0.0;
-            costoActual = 0.0;
             return;
         }
 
-        String limpio = textoViaje.replaceFirst("^Viaje #\\d+:\\s*", "");
-        String distanciaParte = "";
-        int idxPar = limpio.indexOf('(');
-        if (idxPar != -1) {
-            distanciaParte = limpio.substring(idxPar + 1).replace(")", "").trim();
-            limpio = limpio.substring(0, idxPar).trim();
-        }
-
-        String[] tramos = limpio.split("\\s*➔\\s*");
-        if (tramos.length >= 2) {
-            origenActual = tramos[0].trim();
-            destinoActual = tramos[1].trim();
-        } else {
-            origenActual = limpio;
-            destinoActual = "Destino";
-        }
-
-        distanciaActualKm = 0.0;
-        if (!distanciaParte.isEmpty()) {
-            String numStr = distanciaParte.replaceAll("[^0-9.]", "");
-            if (!numStr.isEmpty()) {
-                try {
-                    distanciaActualKm = Double.parseDouble(numStr);
-                } catch (NumberFormatException ignored) {
-                    distanciaActualKm = 0.0;
-                }
+        java.util.regex.Matcher matcherDist = java.util.regex.Pattern
+                .compile("(\\d+(?:[.,]\\d+)?)\\s*km", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(textoViaje);
+        if (matcherDist.find()) {
+            String num = matcherDist.group(1).replace(',', '.');
+            try {
+                distanciaActualKm = Double.parseDouble(num);
+            } catch (NumberFormatException ignored) {
+                distanciaActualKm = 0.0;
             }
         }
 
-        // Tarifa estimada de respaldo si no hay cálculo externo previo
+        String sinPrefijo = textoViaje.replaceFirst("^Viaje\\s*#?\\d*\\s*:?\\s*", "");
+        String sinParentesis = sinPrefijo.replaceAll("\\(.*?\\)", "").trim();
+
+        String[] partes = sinParentesis.split("\\s*(➔|->|→|—|–|-)\\s*");
+        if (partes.length >= 2) {
+            origenActual = partes[0].trim();
+            destinoActual = partes[1].trim();
+        } else if (!sinParentesis.isEmpty()) {
+            origenActual = sinParentesis;
+            destinoActual = "Destino";
+        }
+
+        double[] cOrigen = obtenerCoordenadasConocidas(origenActual);
+        double[] cDestino = obtenerCoordenadasConocidas(destinoActual);
+        if (cOrigen != null && cDestino != null) {
+            try {
+                com.graphhopper.ResponsePath ruta = md.ui.impl.javafx.map.RutaGraphHopperService.calcularRuta(
+                        cOrigen[0], cOrigen[1], cDestino[0], cDestino[1]
+                );
+                if (ruta != null && ruta.getDistance() > 0) {
+                    distanciaActualKm = ruta.getDistance() / 1000.0;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
         costoActual = 2000.0 + (distanciaActualKm * 200.0);
+        System.out.println("📏 [Resumen] Origen: " + origenActual + " | Destino: " + destinoActual
+                + " | Distancia: " + distanciaActualKm + " km | Costo: $" + costoActual);
     }
 
     @FXML
@@ -320,6 +334,25 @@ public class PanelConductorController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/Login.fxml"));
             javafx.scene.Parent root = loader.load();
             stage.setTitle("Movilidad Digital - Iniciar Sesión");
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    @FXML
+    private void handleVolverInicio(javafx.event.ActionEvent event) {
+        try {
+            javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/VentanaPrincipal.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            VentanaPrincipalController principalController = loader.getController();
+            if (principalController != null && usuarioActual != null) {
+                principalController.setUsuarioActual(usuarioActual);
+            }
+
+            stage.setTitle("Movilidad Digital - Inicio");
             stage.setScene(new javafx.scene.Scene(root));
             stage.show();
         } catch (Exception e) {
