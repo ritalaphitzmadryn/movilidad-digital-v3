@@ -427,6 +427,12 @@ public class VentanaPrincipalController implements Initializable {
                     );
                 }
 
+                Alert avisoFinalizado = new Alert(Alert.AlertType.INFORMATION);
+                avisoFinalizado.setTitle("Estado del viaje");
+                avisoFinalizado.setHeaderText("Voaje FINALIZADO!");
+                avisoFinalizado.setContentText("El recorrido concluyó. A continuación se mostrará el detalle y la calificación.");
+                avisoFinalizado.showAndWait();
+
                 mostrarResumenEHistorialViaje(distanciaViajeKm, costoTotal, patenteMovil, tipoServicioElegido, tipoVehiculoElegido, categoriaElegida, tiempoViajeMin);
                 actualizarIndicadorFlota();
             }

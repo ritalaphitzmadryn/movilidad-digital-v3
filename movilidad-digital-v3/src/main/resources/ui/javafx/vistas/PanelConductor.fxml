@@ -22,8 +22,7 @@
     <Label text="Viajes Disponibles:" style="-fx-font-weight: bold;" />
     <ListView fx:id="listViajesDisponibles" prefHeight="200" />
 
-    <Button fx:id="btnAceptarViaje" text="Aceptar Viaje Seleccionado" onAction="#handleAceptarViaje" maxWidth="Infinity" style="-fx-base: #2e7d32; -fx-text-fill: white;" />
-	<!-- Botón para aceptar el viaje existente -->
+    <Button fx:id="btnAceptarViaje" text="Aceptar Viaje Seleccionado" onAction="#handleAceptarViaje" maxWidth="Infinity" style="-fx-base: #2e7d32; -fx-text-fill: white;" /><!-- Botón para aceptar el viaje existente -->
    
     <!-- NUEVO: Botón para volver al Login o ir al Mapa -->
     <Button text="Volver al Login / Salir" onAction="#handleVolverLogin" maxWidth="Infinity" style="-fx-base: #d32f2f; -fx-text-fill: white;" />
