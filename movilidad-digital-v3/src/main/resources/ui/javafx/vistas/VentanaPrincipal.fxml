@@ -6,11 +6,12 @@
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
 <?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.web.WebView?>
 
-<BorderPane prefHeight="710.0" prefWidth="1050.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.ui.impl.javafx.controller.VentanaPrincipalController">
+<BorderPane prefHeight="720.0" prefWidth="1050.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="md.ui.impl.javafx.controller.VentanaPrincipalController">
    <top>
       <MenuBar BorderPane.alignment="CENTER">
         <menus>
@@ -28,57 +29,64 @@
       </MenuBar>
    </top>
    <left>
-      <VBox prefWidth="250.0" spacing="10.0" style="-fx-background-color: #1b5e20; -fx-padding: 15;" BorderPane.alignment="CENTER">
-         <children>
-            <!-- SELECTOR DE IDIOMA (i18n) -->
-            <Label style="-fx-text-fill: white;" text="Idioma / Language:" />
-            <ComboBox fx:id="cbIdioma" maxWidth="Infinity" promptText="Idioma / Language" />
-         
-            <!-- TIPO DE SERVICIO (PASAJEROS / ENVIOS) -->
-            <Label fx:id="lblTituloServicio" style="-fx-text-fill: white;" text="¿Pasajero o Envio?" />
-            <ComboBox fx:id="cbTipoServicioEnum" maxWidth="Infinity" promptText="Seleccionar servicio..." />
-            
-            <Label fx:id="lblTituloVehiculo" style="-fx-text-fill: white;" text="Seleccioná que vehículo preferís:" />
-            <ComboBox fx:id="cbTipoVehiculo" maxWidth="Infinity" promptText="Seleccionar vehículo..." />
-            
-            <!-- Etiqueta de bienvenida personalizada -->
-            <Label fx:id="lblBienvenida" text="¡Bienvenido!" style="-fx-text-fill: #e8f5e9; -fx-font-weight: bold; -fx-font-size: 13px;" />
-            
-            <Label fx:id="lblElegirUsuario" style="-fx-text-fill: white;" text="Elegí tipo de Usuario:" />
-            <ComboBox fx:id="cbTipoUsuario" maxWidth="Infinity" promptText="Seleccionar perfil..." />
-            
-            <!-- ORIGEN: Solo botón y etiqueta informativa -->
-            <Label fx:id="lblOrigenTitulo" style="-fx-text-fill: white;" text="Origen:" />
-            <Button fx:id="btnPincharOrigen" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Origen en Mapa" />
-            <Label fx:id="lblOrigenInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
+      <ScrollPane fitToWidth="true" hbarPolicy="NEVER" prefWidth="270.0" vbarPolicy="AS_NEEDED" BorderPane.alignment="CENTER">
+         <content>
+            <VBox spacing="7.0" style="-fx-background-color: #1b5e20; -fx-padding: 12;">
+               <children>
+                  <!-- SELECTOR DE IDIOMA (i18n) -->
+                  <Label style="-fx-text-fill: white;" text="Idioma / Language:" />
+                  <ComboBox fx:id="cbIdioma" maxWidth="Infinity" promptText="Idioma / Language" />
+               
+                  <!-- TIPO DE SERVICIO (PASAJEROS / ENVIOS) -->
+                  <Label fx:id="lblTituloServicio" style="-fx-text-fill: white;" text="¿Pasajero o Envio?" />
+                  <ComboBox fx:id="cbTipoServicioEnum" maxWidth="Infinity" promptText="Seleccionar servicio..." />
+                  
+                  <Label fx:id="lblTituloVehiculo" style="-fx-text-fill: white;" text="Seleccioná que vehículo preferís:" />
+                  <ComboBox fx:id="cbTipoVehiculo" maxWidth="Infinity" promptText="Seleccionar vehículo..." />
+                  
+                  <!-- Etiqueta de bienvenida personalizada -->
+                  <Label fx:id="lblBienvenida" style="-fx-text-fill: #e8f5e9; -fx-font-weight: bold; -fx-font-size: 13px;" text="¡Bienvenido!" wrapText="true" />
 
-            <!-- DESTINO: Solo botón y etiqueta informativa -->
-            <Label fx:id="lblDestinoTitulo" style="-fx-text-fill: white;" text="Destino:" />
-            <Button fx:id="btnPincharDestino" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Destino en Mapa" />
-            <Label fx:id="lblDestinoInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
-            
-            <Label fx:id="lblTipoServicioTitulo" style="-fx-text-fill: white;" text="Tipo de Servicio:" />
-            <ComboBox fx:id="cbTipoServicio" maxWidth="Infinity" />
-            
-            <!-- Botón de solicitar viaje -->
-            <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
-            
-            <!-- Botón para limpiar selecciones y rutas -->
-            <Button fx:id="btnLimpiar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="🗑️ Limpiar Selección" />
-            
-            <!-- Etiqueta para mostrar los resultados en pantalla -->
-            <Label fx:id="lblResultadoViaje" wrapText="true" style="-fx-text-fill: #e8f5e9; -fx-font-size: 13px;" />        
-         </children>
-      </VBox>
+                  <!-- Botón para volver atrás y loguearse como conductor -->
+                  <Button fx:id="btnVolverConductor" maxWidth="Infinity" mnemonicParsing="false" onAction="#handleVolverLoguearConductor" style="-fx-background-color: #ef6c00; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Volver a inicio" wrapText="true" />
+                  
+                  <Label fx:id="lblElegirUsuario" managed="false" visible="false" style="-fx-text-fill: white;" text="Elegí tipo de Usuario:" />
+                  <ComboBox fx:id="cbTipoUsuario" managed="false" visible="false" maxWidth="Infinity" promptText="Seleccionar perfil..." />
+                  
+                  <!-- ORIGEN: Solo botón y etiqueta informativa -->
+                  <Label fx:id="lblOrigenTitulo" style="-fx-text-fill: white;" text="Origen:" />
+                  <Button fx:id="btnPincharOrigen" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Origen en Mapa" />
+                  <Label fx:id="lblOrigenInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
+
+                  <!-- DESTINO: Solo botón y etiqueta informativa -->
+                  <Label fx:id="lblDestinoTitulo" style="-fx-text-fill: white;" text="Destino:" />
+                  <Button fx:id="btnPincharDestino" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="Seleccionar Destino en Mapa" />
+                  <Label fx:id="lblDestinoInfo" style="-fx-text-fill: #e8f5e9; -fx-font-size: 12px;" text="No seleccionado" wrapText="true" />
+                  
+                  <Label fx:id="lblTipoServicioTitulo" style="-fx-text-fill: white;" text="Tipo de Servicio:" />
+                  <ComboBox fx:id="cbTipoServicio" maxWidth="Infinity" />
+                  
+                  <!-- Botón de solicitar viaje -->
+                  <Button fx:id="btnSolicitar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #ffffff; -fx-text-fill: #1b5e20; -fx-font-weight: bold; -fx-cursor: hand;" text="Solicitar Viaje" />
+                  
+                  <!-- Botón para limpiar selecciones y rutas -->
+                  <Button fx:id="btnLimpiar" maxWidth="Infinity" mnemonicParsing="false" style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" text="🗑️ Limpiar Selección" />
+                  
+                  <!-- Etiqueta para mostrar los resultados en pantalla -->
+                  <Label fx:id="lblResultadoViaje" style="-fx-text-fill: #e8f5e9; -fx-font-size: 13px;" wrapText="true" />        
+               </children>
+            </VBox>
+         </content>
+      </ScrollPane>
    </left>  
    <center>
       <VBox spacing="5" style="-fx-padding: 10; -fx-background-color: #ffffff;">
          <children>
             <!-- Etiqueta del estado de la flota -->
-            <Label fx:id="lblEstadoFlota" text="Conductores disponibles: 0" style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2e7d32;" />
+            <Label fx:id="lblEstadoFlota" style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2e7d32;" text="Conductores disponibles: 0" />
             
             <!-- Visor del mapa web -->
-            <WebView fx:id="mapWebView" VBox.vgrow="ALWAYS" maxWidth="Infinity" maxHeight="Infinity" />
+            <WebView fx:id="mapWebView" maxHeight="Infinity" maxWidth="Infinity" VBox.vgrow="ALWAYS" />
          </children>
       </VBox>
    </center>

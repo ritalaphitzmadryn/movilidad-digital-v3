@@ -48,40 +48,41 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 public class VentanaPrincipalController implements Initializable {
-	
-    @FXML private Label lblResultadoViaje; 
+
+    @FXML private Label lblResultadoViaje;
     @FXML private Label lblOrigenInfo;
     @FXML private Label lblDestinoInfo;
-    @FXML private Label lblBienvenida; 
+    @FXML private Label lblBienvenida;
     @FXML private Label lblTituloServicio;
     @FXML private Label lblTituloVehiculo;
     @FXML private Label lblElegirUsuario;
     @FXML private Label lblOrigenTitulo;
     @FXML private Label lblDestinoTitulo;
     @FXML private Label lblTipoServicioTitulo;
-    
+
     @FXML private ComboBox<String> cbTipoUsuario;
-    @FXML private ComboBox<String> cbTipoServicio; 
-    @FXML private ComboBox<TipoServicio> cbTipoServicioEnum; 
-    @FXML private ComboBox<TipoVehiculo> cbTipoVehiculo;     
+    @FXML private ComboBox<String> cbTipoServicio;
+    @FXML private ComboBox<TipoServicio> cbTipoServicioEnum;
+    @FXML private ComboBox<TipoVehiculo> cbTipoVehiculo;
     @FXML private Label lblEstadoFlota;
     @FXML private Button btnSolicitar;
     @FXML private Button btnPincharOrigen;
     @FXML private Button btnPincharDestino;
-    @FXML private Button btnLimpiar; 
-    @FXML private WebView mapWebView; 
+    @FXML private Button btnLimpiar;
+    @FXML private Button btnVolverConductor;
+    @FXML private WebView mapWebView;
     @FXML private ComboBox<String> cbIdioma;
 
     private VisualizadorRutasLeaflet visualizadorMapa;
     private IRutasService rutasService = new RutasServiceImpl();
     private Usuario usuarioActual;
     private ResourceBundle bundle;
-    
+
     private double latOrigen = -42.7692;
     private double lonOrigen = -65.0385;
     private double latDestino = -42.7480;
     private double lonDestino = -65.0310;
-    
+
     private boolean origenSeleccionado = false;
     private boolean destinoSeleccionado = false;
 
@@ -90,28 +91,14 @@ public class VentanaPrincipalController implements Initializable {
         this.bundle = resources;
         this.rutasService = new RutasServiceImpl();
 
+        // Ocultar selector desplegable de usuario: el ingreso como cliente ya está definido
         if (cbTipoUsuario != null) {
-            cbTipoUsuario.getItems().addAll("Cliente (Pasajero)", "Conductor");
-            cbTipoUsuario.getSelectionModel().selectFirst();
-            
-            cbTipoUsuario.setOnAction(event -> {
-                if (usuarioActual != null) {
-                    String seleccion = cbTipoUsuario.getValue();
-                    if ("Conductor".equals(seleccion) || "Driver".equals(seleccion)) {
-                        if (usuarioActual.getConductor() != null) {
-                            usuarioActual.cambiarRolActivo(RolUsuario.CONDUCTOR);
-                        } else {
-                            cbTipoUsuario.getSelectionModel().select(bundle != null && bundle.containsKey("user.client") ? bundle.getString("user.client") : "Cliente (Pasajero)");
-                        }
-                    } else {
-                        if (usuarioActual.getCliente() != null) {
-                            usuarioActual.cambiarRolActivo(RolUsuario.CLIENTE);
-                        } else {
-                            cbTipoUsuario.getSelectionModel().select(bundle != null && bundle.containsKey("user.driver") ? bundle.getString("user.driver") : "Conductor");
-                        }
-                    }
-                }
-            });
+            cbTipoUsuario.setVisible(false);
+            cbTipoUsuario.setManaged(false);
+        }
+        if (lblElegirUsuario != null) {
+            lblElegirUsuario.setVisible(false);
+            lblElegirUsuario.setManaged(false);
         }
 
         if (cbTipoServicio != null) {
@@ -156,7 +143,7 @@ public class VentanaPrincipalController implements Initializable {
             });
             cbTipoVehiculo.getSelectionModel().selectFirst();
         }
-        
+
         if (mapWebView != null) {
             visualizadorMapa = new VisualizadorRutasLeaflet(mapWebView);
 
@@ -166,7 +153,7 @@ public class VentanaPrincipalController implements Initializable {
                     lonOrigen = coords[1];
                     origenSeleccionado = true;
                     visualizadorMapa.mostrarMarcador("origen", latOrigen, lonOrigen);
-                    
+
                     if (lblOrigenInfo != null) {
                         lblOrigenInfo.setText(String.format(Locale.US, "Lat: %.4f, Lon: %.4f", latOrigen, lonOrigen));
                     }
@@ -175,14 +162,14 @@ public class VentanaPrincipalController implements Initializable {
                     lonDestino = coords[1];
                     destinoSeleccionado = true;
                     visualizadorMapa.mostrarMarcador("destino", latDestino, lonDestino);
-                    
+
                     if (lblDestinoInfo != null) {
                         lblDestinoInfo.setText(String.format(Locale.US, "Lat: %.4f, Lon: %.4f", latDestino, lonDestino));
                     }
                 }
             });
         }
-            
+
         if (btnPincharOrigen != null) {
             btnPincharOrigen.setOnAction(e -> {
                 if (visualizadorMapa != null) {
@@ -212,7 +199,7 @@ public class VentanaPrincipalController implements Initializable {
                 if (lblOrigenInfo != null) lblOrigenInfo.setText(txtNoSel);
                 if (lblDestinoInfo != null) lblDestinoInfo.setText(txtNoSel);
                 if (lblResultadoViaje != null) lblResultadoViaje.setText("");
-                
+
                 if (cbTipoServicioEnum != null && !cbTipoServicioEnum.getItems().isEmpty()) {
                     cbTipoServicioEnum.getSelectionModel().selectFirst();
                 }
@@ -222,7 +209,7 @@ public class VentanaPrincipalController implements Initializable {
                 if (cbTipoServicio != null && !cbTipoServicio.getItems().isEmpty()) {
                     cbTipoServicio.getSelectionModel().selectFirst();
                 }
-                
+
                 origenSeleccionado = false;
                 destinoSeleccionado = false;
                 actualizarIndicadorFlota();
@@ -230,11 +217,12 @@ public class VentanaPrincipalController implements Initializable {
         }
 
         actualizarIndicadorFlota();
-        
+        actualizarBienvenida();
+
         if (cbIdioma != null) {
             cbIdioma.getItems().addAll("Español", "English");
             cbIdioma.getSelectionModel().select("Español");
-            
+
             cbIdioma.valueProperty().addListener((obs, oldValue, newValue) -> {
                 if (newValue != null && !newValue.equals(oldValue)) {
                     Locale locale = "English".equals(newValue) ? new Locale("en", "US") : new Locale("es", "ES");
@@ -244,20 +232,52 @@ public class VentanaPrincipalController implements Initializable {
         }
     }
 
+    public void setUsuarioActual(Usuario usuario) {
+        this.usuarioActual = usuario;
+        if (this.usuarioActual != null && this.usuarioActual.getCliente() != null) {
+            this.usuarioActual.cambiarRolActivo(RolUsuario.CLIENTE);
+        }
+        actualizarBienvenida();
+    }
+
+    private void actualizarBienvenida() {
+        if (lblBienvenida != null) {
+            if (usuarioActual != null && usuarioActual.getNombre() != null && !usuarioActual.getNombre().isBlank()) {
+                lblBienvenida.setText("¡Bienvenido " + usuarioActual.getNombre() + "!");
+            } else {
+                lblBienvenida.setText("¡Bienvenido!");
+            }
+        }
+    }
+
+    @FXML
+    private void handleVolverLoguearConductor(javafx.event.ActionEvent event) {
+        try {
+            Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/Login.fxml"));
+            Parent root = loader.load();
+            stage.setTitle("Movilidad Digital - Iniciar Sesión");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void recargarVentanaConIdioma(Locale locale) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/ui/javafx/vistas/VentanaPrincipal.fxml"), ResourceBundle.getBundle("ui.i18n.labels", locale));
             Parent root = loader.load();
             VentanaPrincipalController controller = loader.getController();
             controller.setUsuarioActual(this.usuarioActual);
-            
+
             Stage stage = (Stage) btnSolicitar.getScene().getWindow();
             stage.setScene(new Scene(root));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
+
     @FXML
     private void handleSolicitarViaje() {
         try {
@@ -454,6 +474,7 @@ public class VentanaPrincipalController implements Initializable {
         }
         return String.format(Locale.US, "[[%f, %f], [%f, %f], [%f, %f]]", lat1, lon1, lat1, lon2, lat2, lon2);
     }
+
     private void mostrarResumenEHistorialViaje(double distanciaKm, double costoTotal, String patenteMovil, TipoServicio tipoServicio, TipoVehiculo tipoVehiculo, String categoria, double tiempoMin) {
         Dialog<ButtonType> dialogo = new Dialog<>();
         dialogo.setTitle(bundle != null && bundle.containsKey("dialog.track.title") ? bundle.getString("dialog.track.title") : "Movilidad Digital - Seguimiento de mi pedido");
@@ -472,19 +493,18 @@ public class VentanaPrincipalController implements Initializable {
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background: #ffffff; -fx-background-color: transparent;");
 
-        // 1. PROGRESO DEL VIAJE (VBox vertical)
         String progTitle = bundle != null && bundle.containsKey("section.progress") ? bundle.getString("section.progress") : "Progreso del viaje";
         Label lblProgresoTitulo = new Label(progTitle);
         lblProgresoTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
 
-        VBox boxProgreso = new VBox(8); 
+        VBox boxProgreso = new VBox(8);
         boxProgreso.setAlignment(Pos.CENTER_LEFT);
-        
+
         String st1 = bundle != null && bundle.containsKey("status.requested") ? bundle.getString("status.requested") : "Solicitado";
         String st2 = bundle != null && bundle.containsKey("status.accepted") ? bundle.getString("status.accepted") : "Aceptado";
         String st3 = bundle != null && bundle.containsKey("status.intrip") ? bundle.getString("status.intrip") : "En viaje";
         String st4 = bundle != null && bundle.containsKey("status.finished") ? bundle.getString("status.finished") : "Finalizado";
-        
+
         String[] estados = {"1-" + st1, "2-" + st2, "3-" + st3, "4-" + st4};
         for (String estado : estados) {
             Label lblEstado = new Label(estado);
@@ -492,30 +512,28 @@ public class VentanaPrincipalController implements Initializable {
             boxProgreso.getChildren().add(lblEstado);
         }
 
-        // 2. MÉTRICAS
         HBox boxMetricas = new HBox(10);
         boxMetricas.setAlignment(Pos.CENTER);
-        
+
         String mTime = bundle != null && bundle.containsKey("section.metrics.time") ? bundle.getString("section.metrics.time") : "TIEMPO ESTIMADO";
         String mDist = bundle != null && bundle.containsKey("section.metrics.distance") ? bundle.getString("section.metrics.distance") : "DISTANCIA APROX";
         String mCost = bundle != null && bundle.containsKey("section.metrics.cost") ? bundle.getString("section.metrics.cost") : "COSTO ESTIMADO";
-        
+
         VBox cardTiempo = crearTarjetaMetrica(mTime, String.format(Locale.US, "~%.0f min", tiempoMin));
         VBox cardDistancia = crearTarjetaMetrica(mDist, String.format(Locale.US, "%.2f km", distanciaKm));
         VBox cardCosto = crearTarjetaMetrica(mCost, String.format(Locale.US, "$ %.2f", costoTotal));
         cardCosto.setStyle("-fx-background-color: white; -fx-border-color: #2e7d32; -fx-border-radius: 4px; -fx-padding: 8px 12px; -fx-alignment: center;");
-        
+
         boxMetricas.getChildren().addAll(cardTiempo, cardDistancia, cardCosto);
 
-        // 3. DETALLES DEL PEDIDO
         String dTitle = bundle != null && bundle.containsKey("section.details") ? bundle.getString("section.details") : "Detalles del pedido";
         Label lblDetallesTitulo = new Label(dTitle);
         lblDetallesTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
 
         VBox boxDetalles = new VBox(5);
         boxDetalles.setStyle("-fx-background-color: white; -fx-padding: 10px; -fx-border-color: #dddddd; -fx-border-radius: 5px;");
-        
-        String nombreCliente = usuarioActual != null ? usuarioActual.getNombre() : "Cliente";
+
+        String nombreCliente = usuarioActual != null && usuarioActual.getNombre() != null ? usuarioActual.getNombre() : "Cliente";
         String textoConductor = "Conductor: No hay unidades disponibles";
         try {
             GestorMovilidad gestorBusqueda = Aplicacion.getGestor();
@@ -556,14 +574,13 @@ public class VentanaPrincipalController implements Initializable {
             }
         }
 
-        // 4. HISTORIAL DE EVENTOS
         String hTitle = bundle != null && bundle.containsKey("section.history") ? bundle.getString("section.history") : "Historial de eventos";
         Label lblHistorialTitulo = new Label(hTitle);
         lblHistorialTitulo.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333; -fx-font-size: 13px;");
 
         VBox boxHistorial = new VBox(3);
         boxHistorial.setStyle("-fx-background-color: white; -fx-padding: 10px; -fx-border-color: #dddddd; -fx-border-radius: 5px; -fx-font-family: 'Consolas', monospace;");
-        
+
         java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         String t1 = java.time.LocalDateTime.now().minusMinutes(3).format(dtf);
         String t2 = java.time.LocalDateTime.now().minusMinutes(2).format(dtf);
@@ -582,11 +599,10 @@ public class VentanaPrincipalController implements Initializable {
             }
         }
 
-        // 5. CALIFICACIÓN INTERACTIVA
         String rTitle = bundle != null && bundle.containsKey("section.rating") ? bundle.getString("section.rating") : "Califica tu experiencia de viaje:";
         Label lblCalifica = new Label(rTitle);
         lblCalifica.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
-        
+
         HBox panelEstrellas = new HBox(8);
         panelEstrellas.setAlignment(Pos.CENTER);
         final int[] califSeleccionada = { 5 };
@@ -621,69 +637,32 @@ public class VentanaPrincipalController implements Initializable {
     private VBox crearTarjetaMetrica(String titulo, String valor) {
         VBox card = new VBox(3);
         card.setAlignment(Pos.CENTER);
-        card.setPadding(new Insets(6, 12, 6, 12));
-        card.setStyle("-fx-background-color: white; -fx-border-color: #cccccc; -fx-border-radius: 4px;");
-        
-        Label lblT = new Label(titulo);
-        lblT.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666; -fx-font-weight: bold;");
-        Label lblV = new Label(valor);
-        lblV.setStyle("-fx-font-size: 13px; -fx-text-fill: #2e7d32; -fx-font-weight: bold;");
-        
-        card.getChildren().addAll(lblT, lblV);
+        card.setStyle("-fx-background-color: white; -fx-border-color: #dddddd; -fx-border-radius: 4px; -fx-padding: 8px 12px;");
+
+        Label lblTit = new Label(titulo);
+        lblTit.setStyle("-fx-font-size: 10px; -fx-text-fill: #666666; -fx-font-weight: bold;");
+
+        Label lblVal = new Label(valor);
+        lblVal.setStyle("-fx-font-size: 13px; -fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+
+        card.getChildren().addAll(lblTit, lblVal);
         return card;
     }
 
-    public void setUsuarioActual(Usuario usuario) {
-        this.usuarioActual = usuario;
-        
-        if (this.usuarioActual != null) {
-            if (lblBienvenida != null) {
-                lblBienvenida.setText("¡Bienvenido, " + usuarioActual.getNombre() + "!");
-            }
-            
-            if (usuarioActual.getRolActivo() == RolUsuario.CONDUCTOR && cbTipoUsuario != null) {
-                cbTipoUsuario.getSelectionModel().select("Conductor");
-            } else if (cbTipoUsuario != null) {
-                cbTipoUsuario.getSelectionModel().select("Cliente (Pasajero)");
-            }
-        }
-        actualizarIndicadorFlota();
-    }
-
     private void actualizarIndicadorFlota() {
+        if (lblEstadoFlota == null) return;
+        int disponibles = 0;
         try {
             GestorMovilidad gestor = Aplicacion.getGestor();
-            if (gestor == null || gestor.obtenerUsuarios() == null) return;
-
-            long cantDisponibles = gestor.obtenerUsuarios().stream()
-                .filter(u -> u.getConductor() != null)
-                .filter(u -> u.getConductor().getEstadoConductor() == EstadoConductor.DISPONIBLE)
-                .count();
-
-            if (lblEstadoFlota != null) {
-                if (cantDisponibles > 0) {
-                    lblEstadoFlota.setText("🟢 Conductores disponibles: " + cantDisponibles);
-                    lblEstadoFlota.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;"); 
-                } else {
-                    lblEstadoFlota.setText("🔴 No hay conductores disponibles");
-                    lblEstadoFlota.setStyle("-fx-font-weight: bold; -fx-text-fill: #d32f2f;"); 
+            if (gestor != null && gestor.obtenerUsuarios() != null) {
+                for (Usuario u : gestor.obtenerUsuarios()) {
+                    if (u.getConductor() != null && u.getConductor().getEstadoConductor() == EstadoConductor.DISPONIBLE) {
+                        disponibles++;
+                    }
                 }
             }
-        } catch (Exception e) {
-            System.err.println("Error al actualizar la flota: " + e.getMessage());
+        } catch (Exception ignored) {
         }
-    }    
-    private String pointListToJson(ResponsePath path, double lat1, double lon1, double lat2, double lon2) {
-        if (path != null && path.getPoints() != null && !path.getPoints().isEmpty()) {
-            PointList pts = path.getPoints();
-            StringBuilder sb = new StringBuilder("[");
-            for (int i = 0; i < pts.size(); i++) {
-                if (i > 0) sb.append(",");
-                sb.append(String.format(Locale.US, "[%.6f, %.6f]", pts.getLat(i), pts.getLon(i)));
-            }
-            sb.append("]");
-            return sb.toString();
-        }
-        return String.format(Locale.US, "[[%f, %f], [%f, %f]]", lat1, lon1, lat2, lon2);
+        lblEstadoFlota.setText("Conductores disponibles: " + disponibles);
     }
 }
