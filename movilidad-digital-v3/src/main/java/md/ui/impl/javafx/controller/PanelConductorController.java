@@ -116,11 +116,45 @@ public class PanelConductorController implements Initializable {
     }
 
     private void cargarViajesPendientes() {
-        if (listViajesDisponibles != null) {
-            listViajesDisponibles.getItems().addAll(
-                "Viaje #1: Terminal ➔ Centro (Aprox. 2.5 km)",
-                "Viaje #2: UNPSJB ➔ Costanera (Aprox. 4.0 km)"
+        if (listViajesDisponibles == null) return;
+        listViajesDisponibles.getItems().clear();
+
+        java.util.List<String> nombresClientes = new java.util.ArrayList<>();
+        try {
+            md.logica.GestorMovilidad gestor = md.aplicacion.Aplicacion.getGestor();
+            if (gestor != null && gestor.obtenerUsuarios() != null) {
+                for (Usuario u : gestor.obtenerUsuarios()) {
+                    if (u.getCliente() != null && u.getNombre() != null && !u.getNombre().isBlank()) {
+                        nombresClientes.add(u.getNombre());
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        if (nombresClientes.isEmpty()) {
+            nombresClientes.addAll(java.util.List.of("Rita", "Lucía", "Martín", "Sofía", "Carlos"));
+        }
+
+        String[] puntos = {"UNPSJB", "Costanera", "Terminal", "Centro", "Ecocentro", "Puerto Madryn"};
+        java.util.Random rnd = new java.util.Random();
+
+        int cantidadViajes = 3;
+        for (int i = 1; i <= cantidadViajes; i++) {
+            String cliente = nombresClientes.get(rnd.nextInt(nombresClientes.size()));
+            String origen = puntos[rnd.nextInt(puntos.length)];
+            String destino = puntos[rnd.nextInt(puntos.length)];
+            while (destino.equals(origen)) {
+                destino = puntos[rnd.nextInt(puntos.length)];
+            }
+
+            double distKm = 1.5 + (rnd.nextDouble() * 6.5); // entre 1.5 y 8.0 km
+            String viajeTexto = String.format(
+                    Locale.US,
+                    "Viaje #%d (%s): %s ➔ %s (Aprox. %.1f km)",
+                    i, cliente, origen, destino, distKm
             );
+            listViajesDisponibles.getItems().add(viajeTexto);
         }
     }
 
@@ -263,16 +297,57 @@ public class PanelConductorController implements Initializable {
                 md.datos.DAO.bd.ConexionBD conexion = new md.datos.DAO.bd.ConexionBD(url, user, password);
                 md.datos.DAO.bd.ServicioDaoBd dao = new md.datos.DAO.bd.ServicioDaoBd(conexion);
 
-                Ubicacion origen = new Ubicacion(origenActual, 0.0, 0.0);
-                Ubicacion destino = new Ubicacion(destinoActual, 0.0, 0.0);
-                Viaje viajeTerminado = new Viaje(null, null, origen, destino);
+                double[] cO = obtenerCoordenadasConocidas(origenActual);
+                double[] cD = obtenerCoordenadasConocidas(destinoActual);
 
-                dao.guardarViajeRealizado(viajeTerminado, usuarioActual.getEmail());
-                System.out.println("💾 [DAO] ¡Viaje guardado exitosamente en la tabla de servicios!");
+                Ubicacion origen = new Ubicacion(
+                        origenActual,
+                        cO != null ? cO[0] : 0.0,
+                        cO != null ? cO[1] : 0.0
+                );
+                Ubicacion destino = new Ubicacion(
+                        destinoActual,
+                        cD != null ? cD[0] : 0.0,
+                        cD != null ? cD[1] : 0.0
+                );
+
+
+                md.modelo.Servicio servicioViaje = null;
+                try {
+                    md.logica.GestorMovilidad gestor = md.aplicacion.Aplicacion.getGestor();
+                    if (gestor != null) {
+                        servicioViaje = gestor.buscarServicioAdecuado(
+                                md.modelo.TipoServicio.PASAJEROS,
+                                md.modelo.TipoVehiculo.AUTO,
+                                md.modelo.CategoriaVehiculo.ESTANDAR
+                        );
+                    }
+                } catch (Exception ignored) {
+                }
+
+                if (servicioViaje == null) {
+                    servicioViaje = new md.modelo.Servicio(
+                            "Standard",
+                            md.modelo.TipoServicio.PASAJEROS,
+                            md.modelo.TipoVehiculo.AUTO,
+                            md.modelo.CategoriaVehiculo.ESTANDAR,
+                            2000.0,
+                            200.0,
+                            100.0
+                    );
+                }
+                
+                Viaje viajeTerminado = new Viaje(usuarioActual, servicioViaje, origen, destino);
+                String emailConductor = usuarioActual.getEmail();
+
+                dao.guardarViajeRealizado(viajeTerminado, emailConductor);
+                System.out.println("💾 [DAO] Viaje guardado para conductor (" + emailConductor + "): "
+                        + origenActual + " ➔ " + destinoActual);
             } else {
                 System.out.println("AVISO: usuarioActual es NULL, no se pudo guardar el registro.");
             }
         } catch (Exception e) {
+            System.err.println("❌ Error al guardar viaje realizado: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -280,7 +355,7 @@ public class PanelConductorController implements Initializable {
             btnAceptarViaje.setText("Aceptar Viaje Seleccionado");
         }
 
-        // 1. Mensaje "Viaje Finalizado!"
+    // 1. Mensaje "Viaje Finalizado!"
         Alert alertaFinalizado = new Alert(Alert.AlertType.INFORMATION);
         alertaFinalizado.setTitle("Estado del Viaje");
         alertaFinalizado.setHeaderText("Viaje Finalizado!");

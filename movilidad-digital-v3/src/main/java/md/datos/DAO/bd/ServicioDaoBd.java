@@ -141,33 +141,54 @@ public class ServicioDaoBd implements ServicioDAO{
         }
         return lista;
     }
+    
     public List<Viaje> cargarHistorialPorConductor(String emailConductor) {
         List<Viaje> lista = new ArrayList<>();
-        // Especificamos el esquema movilidad_digital.servicio
-        String sql = "SELECT nombre, tarifa_base FROM movilidad_digital.servicio"; 
+        String sql = "SELECT nombre, tarifa_base FROM movilidad_digital.servicio ORDER BY nombre DESC";
 
         try (Connection c = conexion.conectar();
              PreparedStatement ps = c.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            
+
             while (rs.next()) {
-                String descripcionRuta = rs.getString("nombre");
+                String nombreRegistro = rs.getString("nombre");
                 double costo = rs.getDouble("tarifa_base");
-                
-                md.modelo.Ubicacion origen = new md.modelo.Ubicacion(descripcionRuta, 0.0, 0.0);
-                md.modelo.Ubicacion destino = new md.modelo.Ubicacion("Destino Registrado", 0.0, 0.0);
-                
-                Usuario clienteFicticio = new Usuario(); 
-                Viaje viaje = new Viaje(clienteFicticio, null, origen, destino);
-                
+
+                // Solo incluimos registros con formato de viaje ("origen -> destino...")
+                if (nombreRegistro == null || !nombreRegistro.contains(" -> ")) {
+                    continue;
+                }
+
+                String sinSufijo = nombreRegistro.contains("#")
+                        ? nombreRegistro.substring(0, nombreRegistro.lastIndexOf("#"))
+                        : nombreRegistro;
+
+                String[] partes = sinSufijo.split(" -> ", 2);
+                String origenStr = partes.length > 0 && !partes[0].isBlank() ? partes[0].trim() : "Origen";
+                String destinoStr = partes.length > 1 && !partes[1].isBlank() ? partes[1].trim() : "Destino";
+
+                md.modelo.Ubicacion origen = new md.modelo.Ubicacion(origenStr, 0.0, 0.0);
+                md.modelo.Ubicacion destino = new md.modelo.Ubicacion(destinoStr, 0.0, 0.0);
+
+                md.modelo.Servicio srv = new md.modelo.Servicio(
+                        nombreRegistro,
+                        md.modelo.TipoServicio.PASAJEROS,
+                        md.modelo.TipoVehiculo.AUTO,
+                        md.modelo.CategoriaVehiculo.ESTANDAR,
+                        costo,
+                        0.0,
+                        0.0
+                );
+
+                Usuario cliente = new Usuario();
+                Viaje viaje = new Viaje(cliente, srv, origen, destino);
                 lista.add(viaje);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error al cargar el historial de servicios", e);
         }
         return lista;
-    }
-    
+    }    
     public void guardarViajeRealizado(md.modelo.Viaje viaje, String emailConductor) {
         
     	String sql = "INSERT INTO movilidad_digital.servicio (nombre, tarifa_base, precio_km, precio_minuto, tipo_vehiculo, categoria_vehiculo, tipo_servicio) VALUES (?, ?, ?, ?, 1, 1, 1)";
