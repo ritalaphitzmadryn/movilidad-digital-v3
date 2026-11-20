@@ -88,7 +88,20 @@ public class PanelHistorialConductorController {
 
     @FXML
     private void handleVolverPanel() {
-        Stage stage = (Stage) listHistorialViajes.getScene().getWindow();
-        stage.close();
+        try {
+            java.net.URL url = getClass().getResource("/ui/javafx/vistas/PanelConductor.fxml"); // ajustá la ruta/nombre de tu FXML
+            if (url == null) {
+                System.err.println("No se encontró el FXML del panel.");
+                return;
+            }
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(url, java.util.ResourceBundle.getBundle("ui.i18n.labels"));
+            javafx.scene.Parent root = loader.load();
+
+            Stage stage = (Stage) listHistorialViajes.getScene().getWindow();
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
