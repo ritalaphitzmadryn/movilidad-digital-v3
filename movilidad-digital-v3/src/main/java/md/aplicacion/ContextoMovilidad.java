@@ -12,8 +12,7 @@ public class ContextoMovilidad {
     
     // Constructor privado (patrón Singleton)
     private ContextoMovilidad() {
-        this.rutaService = new RutasServiceImpl(); // <--- Corregido aquí
-        // Aquí podrías inicializar listas de viajes, conductores, etc.
+        this.rutaService = new RutasServiceImpl();
     }
     
     public static synchronized ContextoMovilidad getInstancia() {
