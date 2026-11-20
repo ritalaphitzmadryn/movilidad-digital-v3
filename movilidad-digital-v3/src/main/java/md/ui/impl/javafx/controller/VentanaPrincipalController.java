@@ -91,7 +91,10 @@ public class VentanaPrincipalController implements Initializable {
         this.bundle = resources;
         this.rutasService = new RutasServiceImpl();
 
-        // Ocultar selector desplegable de usuario: el ingreso como cliente ya está definido
+        if (this.bundle == null) {
+            this.bundle = ResourceBundle.getBundle("ui.i18n.labels", new Locale("es", "ES"));
+        }
+
         if (cbTipoUsuario != null) {
             cbTipoUsuario.setVisible(false);
             cbTipoUsuario.setManaged(false);
@@ -103,6 +106,28 @@ public class VentanaPrincipalController implements Initializable {
 
         if (cbTipoServicio != null) {
             cbTipoServicio.getItems().addAll("Standard", "Confort", "Premium");
+            cbTipoServicio.setConverter(new StringConverter<String>() {
+            	@Override
+            	public String toString(String cat) {
+            	    if (cat == null) return "";
+            	    String lower = cat.toLowerCase();
+            	    if ("economic".equals(lower) || "económico".equals(lower) || "economico".equals(lower)) {
+            	        return texto("cat.economic", cat);
+            	    } else if ("standard".equals(lower) || "estándar".equals(lower) || "estandar".equals(lower)) {
+            	        return texto("cat.standard", cat);
+            	    } else if ("confort".equals(lower)) {
+            	        return texto("cat.confort", cat);
+            	    } else if ("vip".equals(lower) || "premium".equals(lower)) {
+            	        return texto("cat.vip", cat);
+            	    }
+            	    return cat;
+            	}
+
+                @Override
+                public String fromString(String string) {
+                    return cbTipoServicio.getValue();
+                }
+            });
             cbTipoServicio.getSelectionModel().selectFirst();
         }
 
@@ -113,14 +138,17 @@ public class VentanaPrincipalController implements Initializable {
                 public String toString(TipoServicio ts) {
                     if (ts == null) return "";
                     if (ts == TipoServicio.PASAJEROS) {
-                        return bundle != null && bundle.containsKey("service.passengers") ? bundle.getString("service.passengers") : "PASAJEROS";
+                        return texto("service.passengers", "PASAJEROS");
                     } else if (ts == TipoServicio.ENVIOS) {
-                        return bundle != null && bundle.containsKey("service.delivery") ? bundle.getString("service.delivery") : "ENVIOS";
+                        return texto("service.delivery", "ENVIOS");
                     }
                     return ts.name();
                 }
+
                 @Override
-                public TipoServicio fromString(String string) { return null; }
+                public TipoServicio fromString(String string) {
+                    return cbTipoServicioEnum.getValue();
+                }
             });
             cbTipoServicioEnum.getSelectionModel().selectFirst();
         }
@@ -132,14 +160,17 @@ public class VentanaPrincipalController implements Initializable {
                 public String toString(TipoVehiculo tv) {
                     if (tv == null) return "";
                     if (tv == TipoVehiculo.AUTO) {
-                        return bundle != null && bundle.containsKey("vehicle.car") ? bundle.getString("vehicle.car") : "AUTO";
+                        return texto("vehicle.car", "AUTO");
                     } else if (tv == TipoVehiculo.MOTO) {
-                        return bundle != null && bundle.containsKey("vehicle.moto") ? bundle.getString("vehicle.moto") : "MOTO";
+                        return texto("vehicle.moto", "MOTO");
                     }
                     return tv.name();
                 }
+
                 @Override
-                public TipoVehiculo fromString(String string) { return null; }
+                public TipoVehiculo fromString(String string) {
+                    return cbTipoVehiculo.getValue();
+                }
             });
             cbTipoVehiculo.getSelectionModel().selectFirst();
         }
@@ -195,7 +226,7 @@ public class VentanaPrincipalController implements Initializable {
                 if (visualizadorMapa != null) {
                     visualizadorMapa.limpiarSeleccionYRutas();
                 }
-                String txtNoSel = bundle != null && bundle.containsKey("label.not.selected") ? bundle.getString("label.not.selected") : "No seleccionado";
+                String txtNoSel = texto("label.not.selected", "No seleccionado");
                 if (lblOrigenInfo != null) lblOrigenInfo.setText(txtNoSel);
                 if (lblDestinoInfo != null) lblDestinoInfo.setText(txtNoSel);
                 if (lblResultadoViaje != null) lblResultadoViaje.setText("");
@@ -216,12 +247,10 @@ public class VentanaPrincipalController implements Initializable {
             });
         }
 
-        actualizarIndicadorFlota();
-        actualizarBienvenida();
-
         if (cbIdioma != null) {
-            cbIdioma.getItems().addAll("Español", "English");
-            cbIdioma.getSelectionModel().select("Español");
+            cbIdioma.getItems().setAll("Español", "English");
+            boolean esIngles = bundle != null && "en".equalsIgnoreCase(bundle.getLocale().getLanguage());
+            cbIdioma.getSelectionModel().select(esIngles ? "English" : "Español");
 
             cbIdioma.valueProperty().addListener((obs, oldValue, newValue) -> {
                 if (newValue != null && !newValue.equals(oldValue)) {
@@ -230,9 +259,69 @@ public class VentanaPrincipalController implements Initializable {
                 }
             });
         }
+
+        aplicarTextosDesdeBundle();
+        actualizarIndicadorFlota();
+        actualizarBienvenida();
     }
 
-    public void setUsuarioActual(Usuario usuario) {
+    private String texto(String clave, String fallback) {
+        if (bundle != null && bundle.containsKey(clave)) {
+            return bundle.getString(clave);
+        }
+        return fallback;
+    }
+
+    private void aplicarTextosDesdeBundle() {
+        if (lblTituloServicio != null) {
+            lblTituloServicio.setText(texto("label.service.question", lblTituloServicio.getText()));
+        }
+        if (lblTituloVehiculo != null) {
+            lblTituloVehiculo.setText(texto("label.vehicle.selection", lblTituloVehiculo.getText()));
+        }
+        if (lblOrigenTitulo != null) {
+            lblOrigenTitulo.setText(texto("label.origin", lblOrigenTitulo.getText()));
+        }
+        if (lblDestinoTitulo != null) {
+            lblDestinoTitulo.setText(texto("label.destination", lblDestinoTitulo.getText()));
+        }
+        if (lblTipoServicioTitulo != null) {
+            lblTipoServicioTitulo.setText(texto("label.service.type", lblTipoServicioTitulo.getText()));
+        }
+
+        if (btnPincharOrigen != null) {
+            btnPincharOrigen.setText(texto("btn.select.origin", btnPincharOrigen.getText()));
+        }
+        if (btnPincharDestino != null) {
+            btnPincharDestino.setText(texto("btn.select.destination", btnPincharDestino.getText()));
+        }
+        if (btnSolicitar != null) {
+            btnSolicitar.setText(texto("btn.request", btnSolicitar.getText()));
+        }
+        if (btnLimpiar != null) {
+            btnLimpiar.setText(texto("btn.clear", btnLimpiar.getText()));
+        }
+
+        String txtNoSel = texto("label.not.selected", "No seleccionado");
+        if (!origenSeleccionado && lblOrigenInfo != null) {
+            lblOrigenInfo.setText(txtNoSel);
+        }
+        if (!destinoSeleccionado && lblDestinoInfo != null) {
+            lblDestinoInfo.setText(txtNoSel);
+        }
+
+        actualizarBienvenida();
+        refrescarCombo(cbTipoServicioEnum);
+        refrescarCombo(cbTipoVehiculo);
+        refrescarCombo(cbTipoServicio);
+    }
+
+    private <T> void refrescarCombo(ComboBox<T> combo) {
+        if (combo == null) return;
+        T actual = combo.getValue();
+        combo.setValue(null);
+        combo.setValue(actual);
+    }    public void setUsuarioActual(Usuario usuario) {
         this.usuarioActual = usuario;
         if (this.usuarioActual != null && this.usuarioActual.getCliente() != null) {
             this.usuarioActual.cambiarRolActivo(RolUsuario.CLIENTE);
