@@ -1,24 +1,38 @@
 package md.ui.impl.javafx.controller;
 
+import com.graphhopper.ResponsePath;
+import com.graphhopper.util.PointList;
+import javafx.concurrent.Worker;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ToggleButton;
-import javafx.scene.control.Label;
+import javafx.scene.web.WebView;
 import md.modelo.Conductor;
 import md.modelo.EstadoConductor;
 import md.modelo.Ubicacion;
 import md.modelo.Usuario;
 import md.modelo.Viaje;
+import md.ui.impl.javafx.map.RutaGraphHopperService;
+import md.ui.impl.javafx.map.VisualizadorRutasLeaflet;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PanelConductorController implements Initializable {
+
+    private static final List<String> VIAJES_DISPONIBLES_SESION = new ArrayList<>();
+    private static boolean viajesInicializadosEnSesion = false;
 
     @FXML
     private Label lblEstadoConductor;
@@ -32,10 +46,18 @@ public class PanelConductorController implements Initializable {
     @FXML
     private Button btnAceptarViaje;
 
+    @FXML
+    private WebView mapaConductorWebView;
+
+    private VisualizadorRutasLeaflet visualizadorMapa;
+    private String viajePendienteDeDibujar;
+
+    private double latConductor = -42.7692;
+    private double lonConductor = -65.0385;
+
     private Usuario usuarioActual;
     private Conductor conductorActual;
 
-    // Datos del viaje en curso para el resumen al finalizar
     private String origenActual = "Terminal / Origen";
     private String destinoActual = "Centro / Destino";
     private double distanciaActualKm = 2.5;
@@ -49,7 +71,133 @@ public class PanelConductorController implements Initializable {
             tglDisponibilidad.setSelected(false);
         }
         actualizarTextoEstado(EstadoConductor.FUERA_DE_SERVICIO);
+        inicializarMapaConductor();
+        configurarSeleccionMapaEnLista();
         cargarViajesPendientes();
+    }
+
+    private void inicializarMapaConductor() {
+        if (mapaConductorWebView == null) {
+            return;
+        }
+        visualizadorMapa = new VisualizadorRutasLeaflet(mapaConductorWebView);
+        mapaConductorWebView.getEngine().getLoadWorker().stateProperty().addListener((obs, oldState, newState) -> {
+            if (newState == Worker.State.SUCCEEDED && viajePendienteDeDibujar != null) {
+                String pendiente = viajePendienteDeDibujar;
+                viajePendienteDeDibujar = null;
+                trazarViajeSeleccionadoEnMapa(pendiente);
+            }
+        });
+    }
+
+    private void configurarSeleccionMapaEnLista() {
+        if (listViajesDisponibles == null) {
+            return;
+        }
+        listViajesDisponibles.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isBlank()) {
+                trazarViajeSeleccionadoEnMapa(newVal);
+            }
+        });
+    }
+
+    private void trazarViajeSeleccionadoEnMapa(String textoViaje) {
+        if (visualizadorMapa == null || textoViaje == null || textoViaje.isBlank()) {
+            return;
+        }
+        if (mapaConductorWebView != null
+                && mapaConductorWebView.getEngine().getLoadWorker().getState() != Worker.State.SUCCEEDED) {
+            viajePendienteDeDibujar = textoViaje;
+            return;
+        }
+
+        String[] lugares = parsearOrigenDestino(textoViaje);
+        String origenTexto = lugares[0];
+        String destinoTexto = lugares[1];
+
+        double[] cOrigen = obtenerCoordenadasConocidas(origenTexto);
+        double[] cDestino = obtenerCoordenadasConocidas(destinoTexto);
+        if (cOrigen == null) {
+            cOrigen = new double[]{-42.7758, -65.0525};
+        }
+        if (cDestino == null) {
+            cDestino = new double[]{-42.7685, -65.0320};
+        }
+
+        double latO = cOrigen[0];
+        double lonO = cOrigen[1];
+        double latD = cDestino[0];
+        double lonD = cDestino[1];
+
+        if (Double.compare(latO, latD) == 0 && Double.compare(lonO, lonD) == 0) {
+            latD = latO + 0.008;
+            lonD = lonO + 0.008;
+        }
+
+        ResponsePath rutaAcercamiento = null;
+        ResponsePath rutaTraslado = null;
+
+        try {
+            rutaAcercamiento = RutaGraphHopperService.calcularRuta(latConductor, lonConductor, latO, lonO);
+        } catch (Exception e) {
+            System.err.println("Aviso GraphHopper acercamiento (conductor -> origen): " + e.getMessage());
+        }
+
+        try {
+            rutaTraslado = RutaGraphHopperService.calcularRuta(latO, lonO, latD, lonD);
+        } catch (Exception e) {
+            System.err.println("Aviso GraphHopper traslado (origen -> destino): " + e.getMessage());
+        }
+
+        String jsonAcercamiento = convertirPointListAJson(
+                rutaAcercamiento != null ? rutaAcercamiento.getPoints() : null,
+                latConductor, lonConductor, latO, lonO
+        );
+        String jsonTraslado = convertirPointListAJson(
+                rutaTraslado != null ? rutaTraslado.getPoints() : null,
+                latO, lonO, latD, lonD
+        );
+
+        visualizadorMapa.trazarRutasCompletas(
+                latConductor, lonConductor,
+                latO, lonO,
+                latD, lonD,
+                jsonAcercamiento,
+                jsonTraslado
+        );
+    }
+
+    private String[] parsearOrigenDestino(String textoViaje) {
+        String origen = "Centro";
+        String destino = "Costanera";
+
+        if (textoViaje == null || textoViaje.isBlank()) {
+            return new String[]{origen, destino};
+        }
+
+        String sinPrefijo = textoViaje.replaceFirst("^Viaje\\s*#?\\d*\\s*:?\\s*", "");
+        String sinParentesis = sinPrefijo.replaceAll("\\(.*?\\)", "").trim();
+        String[] partes = sinParentesis.split("\\s*(➔|->|→|—|–|-)\\s*");
+        if (partes.length >= 2) {
+            origen = partes[0].replaceFirst("^:+\\s*", "").trim();
+            destino = partes[1].replaceFirst("^:+\\s*", "").trim();
+        } else if (!sinParentesis.isEmpty()) {
+            origen = sinParentesis.replaceFirst("^:+\\s*", "").trim();
+        }
+        return new String[]{origen, destino};
+    }
+
+    private String convertirPointListAJson(PointList pts, double lat1, double lon1, double lat2, double lon2) {
+        if (pts != null && !pts.isEmpty()) {
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < pts.size(); i++) {
+                if (i > 0) sb.append(",");
+                sb.append(String.format(Locale.US, "[%.6f, %.6f]", pts.getLat(i), pts.getLon(i)));
+            }
+            sb.append("]");
+            return sb.toString();
+        }
+        return String.format(Locale.US, "[[%f, %f], [%f, %f]]", lat1, lon1, lat2, lon2);
     }
 
     public void setUsuarioActual(Usuario usuario) {
@@ -68,6 +216,7 @@ public class PanelConductorController implements Initializable {
                 tglDisponibilidad.setSelected(estadoActual == EstadoConductor.DISPONIBLE);
             }
         }
+        cargarViajesPendientes();
     }
 
     @FXML
@@ -115,47 +264,91 @@ public class PanelConductorController implements Initializable {
         }
     }
 
+    private boolean esMismoUsuarioActual(Usuario candidato) {
+        if (usuarioActual == null || candidato == null) {
+            return false;
+        }
+        String emailActual = usuarioActual.getEmail();
+        String emailCand = candidato.getEmail();
+        if (emailActual != null && !emailActual.isBlank()
+                && emailCand != null && !emailCand.isBlank()
+                && emailActual.trim().equalsIgnoreCase(emailCand.trim())) {
+            return true;
+        }
+        String nombreActual = usuarioActual.getNombre();
+        String nombreCand = candidato.getNombre();
+        return nombreActual != null && !nombreActual.isBlank()
+                && nombreCand != null && !nombreCand.isBlank()
+                && nombreActual.trim().equalsIgnoreCase(nombreCand.trim());
+    }
+
+    private boolean esNombreDelConductorActual(String nombre) {
+        if (usuarioActual == null || usuarioActual.getNombre() == null || nombre == null) {
+            return false;
+        }
+        return usuarioActual.getNombre().trim().equalsIgnoreCase(nombre.trim());
+    }
+
     private void cargarViajesPendientes() {
         if (listViajesDisponibles == null) return;
         listViajesDisponibles.getItems().clear();
 
-        java.util.List<String> nombresClientes = new java.util.ArrayList<>();
-        try {
-            md.logica.GestorMovilidad gestor = md.aplicacion.Aplicacion.getGestor();
-            if (gestor != null && gestor.obtenerUsuarios() != null) {
-                for (Usuario u : gestor.obtenerUsuarios()) {
-                    if (u.getCliente() != null && u.getNombre() != null && !u.getNombre().isBlank()) {
-                        nombresClientes.add(u.getNombre());
+        if (!viajesInicializadosEnSesion) {
+            VIAJES_DISPONIBLES_SESION.clear();
+
+            List<String> nombresClientes = new ArrayList<>();
+            try {
+                md.logica.GestorMovilidad gestor = md.aplicacion.Aplicacion.getGestor();
+                if (gestor != null && gestor.obtenerUsuarios() != null) {
+                    for (Usuario u : gestor.obtenerUsuarios()) {
+                        if (!esMismoUsuarioActual(u)
+                                && u.getCliente() != null
+                                && u.getNombre() != null
+                                && !u.getNombre().isBlank()
+                                && !esNombreDelConductorActual(u.getNombre())) {
+                            nombresClientes.add(u.getNombre().trim());
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+
+            if (nombresClientes.isEmpty()) {
+                for (String fallback : List.of("Rita", "Lucía", "Martín", "Sofía", "Carlos")) {
+                    if (!esNombreDelConductorActual(fallback)) {
+                        nombresClientes.add(fallback);
                     }
                 }
             }
-        } catch (Exception ignored) {
-        }
-
-        if (nombresClientes.isEmpty()) {
-            nombresClientes.addAll(java.util.List.of("Rita", "Lucía", "Martín", "Sofía", "Carlos"));
-        }
-
-        String[] puntos = {"UNPSJB", "Costanera", "Terminal", "Centro", "Ecocentro", "Puerto Madryn"};
-        java.util.Random rnd = new java.util.Random();
-
-        int cantidadViajes = 3;
-        for (int i = 1; i <= cantidadViajes; i++) {
-            String cliente = nombresClientes.get(rnd.nextInt(nombresClientes.size()));
-            String origen = puntos[rnd.nextInt(puntos.length)];
-            String destino = puntos[rnd.nextInt(puntos.length)];
-            while (destino.equals(origen)) {
-                destino = puntos[rnd.nextInt(puntos.length)];
+            if (nombresClientes.isEmpty()) {
+                nombresClientes.add("Pasajero");
             }
 
-            double distKm = 1.5 + (rnd.nextDouble() * 6.5); // entre 1.5 y 8.0 km
-            String viajeTexto = String.format(
-                    Locale.US,
-                    "Viaje #%d (%s): %s ➔ %s (Aprox. %.1f km)",
-                    i, cliente, origen, destino, distKm
-            );
-            listViajesDisponibles.getItems().add(viajeTexto);
+            String[] puntos = {"UNPSJB", "Costanera", "Terminal", "Centro", "Ecocentro", "Puerto Madryn"};
+            Random rnd = new Random();
+
+            int cantidadViajes = 3;
+            for (int i = 1; i <= cantidadViajes; i++) {
+                String cliente = nombresClientes.get(rnd.nextInt(nombresClientes.size()));
+                String origen = puntos[rnd.nextInt(puntos.length)];
+                String destino = puntos[rnd.nextInt(puntos.length)];
+                while (destino.equals(origen)) {
+                    destino = puntos[rnd.nextInt(puntos.length)];
+                }
+
+                double distKm = 1.5 + (rnd.nextDouble() * 6.5);
+                String viajeTexto = String.format(
+                        Locale.US,
+                        "Viaje #%d (%s): %s ➔ %s (Aprox. %.1f km)",
+                        i, cliente, origen, destino, distKm
+                );
+                VIAJES_DISPONIBLES_SESION.add(viajeTexto);
+            }
+
+            viajesInicializadosEnSesion = true;
         }
+
+        listViajesDisponibles.getItems().addAll(VIAJES_DISPONIBLES_SESION);
     }
 
     private double[] obtenerCoordenadasConocidas(String lugar) {
@@ -173,6 +366,12 @@ public class PanelConductorController implements Initializable {
         if (l.contains("centro")) {
             return new double[]{-42.7692, -65.0385};
         }
+        if (l.contains("ecocentro")) {
+            return new double[]{-42.7419, -65.0215};
+        }
+        if (l.contains("puerto madryn")) {
+            return new double[]{-42.7660, -65.0250};
+        }
         return null;
     }
 
@@ -186,8 +385,8 @@ public class PanelConductorController implements Initializable {
             return;
         }
 
-        java.util.regex.Matcher matcherDist = java.util.regex.Pattern
-                .compile("(\\d+(?:[.,]\\d+)?)\\s*km", java.util.regex.Pattern.CASE_INSENSITIVE)
+        Matcher matcherDist = Pattern
+                .compile("(\\d+(?:[.,]\\d+)?)\\s*km", Pattern.CASE_INSENSITIVE)
                 .matcher(textoViaje);
         if (matcherDist.find()) {
             String num = matcherDist.group(1).replace(',', '.');
@@ -198,23 +397,15 @@ public class PanelConductorController implements Initializable {
             }
         }
 
-        String sinPrefijo = textoViaje.replaceFirst("^Viaje\\s*#?\\d*\\s*:?\\s*", "");
-        String sinParentesis = sinPrefijo.replaceAll("\\(.*?\\)", "").trim();
-
-        String[] partes = sinParentesis.split("\\s*(➔|->|→|—|–|-)\\s*");
-        if (partes.length >= 2) {
-            origenActual = partes[0].trim();
-            destinoActual = partes[1].trim();
-        } else if (!sinParentesis.isEmpty()) {
-            origenActual = sinParentesis;
-            destinoActual = "Destino";
-        }
+        String[] lugares = parsearOrigenDestino(textoViaje);
+        origenActual = lugares[0];
+        destinoActual = lugares[1];
 
         double[] cOrigen = obtenerCoordenadasConocidas(origenActual);
         double[] cDestino = obtenerCoordenadasConocidas(destinoActual);
         if (cOrigen != null && cDestino != null) {
             try {
-                com.graphhopper.ResponsePath ruta = md.ui.impl.javafx.map.RutaGraphHopperService.calcularRuta(
+                ResponsePath ruta = RutaGraphHopperService.calcularRuta(
                         cOrigen[0], cOrigen[1], cDestino[0], cDestino[1]
                 );
                 if (ruta != null && ruta.getDistance() > 0) {
@@ -252,6 +443,7 @@ public class PanelConductorController implements Initializable {
                 conductorActual.setEstadoConductor(EstadoConductor.VIAJE_A_ORIGEN);
                 actualizarTextoEstado(EstadoConductor.VIAJE_A_ORIGEN);
 
+                VIAJES_DISPONIBLES_SESION.remove(viajeSeleccionado);
                 if (listViajesDisponibles != null) {
                     listViajesDisponibles.getItems().remove(viajeSeleccionado);
                 }
@@ -282,6 +474,12 @@ public class PanelConductorController implements Initializable {
     }
 
     private void finalizarYMostrarResumen() {
+        double[] cDActual = obtenerCoordenadasConocidas(destinoActual);
+        if (cDActual != null) {
+            latConductor = cDActual[0];
+            lonConductor = cDActual[1];
+        }
+
         if (conductorActual != null) {
             conductorActual.setEstadoConductor(EstadoConductor.DISPONIBLE);
             actualizarTextoEstado(EstadoConductor.DISPONIBLE);
@@ -302,15 +500,14 @@ public class PanelConductorController implements Initializable {
 
                 Ubicacion origen = new Ubicacion(
                         origenActual,
-                        cO != null ? cO[0] : 0.0,
-                        cO != null ? cO[1] : 0.0
+                        cO != null ? cO[0] : -42.7692,
+                        cO != null ? cO[1] : -65.0385
                 );
                 Ubicacion destino = new Ubicacion(
                         destinoActual,
-                        cD != null ? cD[0] : 0.0,
-                        cD != null ? cD[1] : 0.0
+                        cD != null ? cD[0] : -42.7685,
+                        cD != null ? cD[1] : -65.0320
                 );
-
 
                 md.modelo.Servicio servicioViaje = null;
                 try {
@@ -336,8 +533,13 @@ public class PanelConductorController implements Initializable {
                             100.0
                     );
                 }
-                
+
                 Viaje viajeTerminado = new Viaje(usuarioActual, servicioViaje, origen, destino);
+                viajeTerminado.finalizar(
+                        java.time.LocalDateTime.now(),
+                        md.modelo.CalificacionViaje.NO_CALIFICADO,
+                        md.modelo.CalificacionViaje.NO_CALIFICADO
+                );
                 String emailConductor = usuarioActual.getEmail();
 
                 dao.guardarViajeRealizado(viajeTerminado, emailConductor);
@@ -355,14 +557,12 @@ public class PanelConductorController implements Initializable {
             btnAceptarViaje.setText("Aceptar Viaje Seleccionado");
         }
 
-    // 1. Mensaje "Viaje Finalizado!"
         Alert alertaFinalizado = new Alert(Alert.AlertType.INFORMATION);
         alertaFinalizado.setTitle("Estado del Viaje");
         alertaFinalizado.setHeaderText("Viaje Finalizado!");
         alertaFinalizado.setContentText("El viaje se completó correctamente.");
         alertaFinalizado.showAndWait();
 
-        // 2. Resumen del viaje: origen, destino, distancia y costo
         String resumen = String.format(
                 Locale.US,
                 "📍 Origen: %s%n" +
@@ -391,6 +591,7 @@ public class PanelConductorController implements Initializable {
 
             PanelHistorialConductorController historialController = loader.getController();
             if (historialController != null && usuarioActual != null) {
+                historialController.setUsuarioActual(usuarioActual);
                 historialController.initData(usuarioActual.getEmail());
             }
 
@@ -415,6 +616,7 @@ public class PanelConductorController implements Initializable {
             e.printStackTrace();
         }
     }
+
     @FXML
     private void handleVolverInicio(javafx.event.ActionEvent event) {
         try {

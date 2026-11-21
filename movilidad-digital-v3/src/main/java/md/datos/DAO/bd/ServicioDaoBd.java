@@ -5,9 +5,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import md.datos.DAO.*;
+import md.modelo.CalificacionViaje;
 import md.modelo.TipoServicio;
 import md.modelo.TipoVehiculo;
 import md.modelo.Usuario;
@@ -141,6 +144,18 @@ public class ServicioDaoBd implements ServicioDAO{
         }
         return lista;
     }
+
+    private double[] coordenadasPorLugar(String lugar) {
+        if (lugar == null) return new double[]{-42.7692, -65.0385};
+        String l = lugar.toLowerCase(Locale.ROOT);
+        if (l.contains("unpsjb")) return new double[]{-42.7856, -65.0056};
+        if (l.contains("costanera")) return new double[]{-42.7685, -65.0320};
+        if (l.contains("terminal")) return new double[]{-42.7758, -65.0525};
+        if (l.contains("centro")) return new double[]{-42.7692, -65.0385};
+        if (l.contains("ecocentro")) return new double[]{-42.7419, -65.0215};
+        if (l.contains("puerto madryn")) return new double[]{-42.7660, -65.0250};
+        return new double[]{-42.7692, -65.0385};
+    }
     
     public List<Viaje> cargarHistorialPorConductor(String emailConductor) {
         List<Viaje> lista = new ArrayList<>();
@@ -164,11 +179,14 @@ public class ServicioDaoBd implements ServicioDAO{
                         : nombreRegistro;
 
                 String[] partes = sinSufijo.split(" -> ", 2);
-                String origenStr = partes.length > 0 && !partes[0].isBlank() ? partes[0].trim() : "Origen";
-                String destinoStr = partes.length > 1 && !partes[1].isBlank() ? partes[1].trim() : "Destino";
+                String origenStr = partes.length > 0 && !partes[0].isBlank() ? partes[0].replaceFirst("^:+\\s*", "").trim() : "Origen";
+                String destinoStr = partes.length > 1 && !partes[1].isBlank() ? partes[1].replaceFirst("^:+\\s*", "").trim() : "Destino";
 
-                md.modelo.Ubicacion origen = new md.modelo.Ubicacion(origenStr, 0.0, 0.0);
-                md.modelo.Ubicacion destino = new md.modelo.Ubicacion(destinoStr, 0.0, 0.0);
+                double[] cO = coordenadasPorLugar(origenStr);
+                double[] cD = coordenadasPorLugar(destinoStr);
+
+                md.modelo.Ubicacion origen = new md.modelo.Ubicacion(origenStr, cO[0], cO[1]);
+                md.modelo.Ubicacion destino = new md.modelo.Ubicacion(destinoStr, cD[0], cD[1]);
 
                 md.modelo.Servicio srv = new md.modelo.Servicio(
                         nombreRegistro,
@@ -182,6 +200,7 @@ public class ServicioDaoBd implements ServicioDAO{
 
                 Usuario cliente = new Usuario();
                 Viaje viaje = new Viaje(cliente, srv, origen, destino);
+                viaje.finalizar(LocalDateTime.now(), CalificacionViaje.NO_CALIFICADO, CalificacionViaje.NO_CALIFICADO);
                 lista.add(viaje);
             }
         } catch (SQLException e) {

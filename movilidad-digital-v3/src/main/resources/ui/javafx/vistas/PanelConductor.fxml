@@ -3,47 +3,61 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.web.WebView?>
 
-<VBox alignment="CENTER" spacing="12" prefWidth="450" prefHeight="540"
-      style="-fx-background-color: linear-gradient(to bottom, #f3e5f5, #ede7f6);"
-      xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="md.ui.impl.javafx.controller.PanelConductorController">
-    <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
-    </padding>
+<BorderPane prefWidth="1050" prefHeight="640"
+            xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="md.ui.impl.javafx.controller.PanelConductorController">
 
-    <Label text="Panel de Conductor - Movilidad Digital"
-           style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #4a148c;" />
+    <left>
+        <VBox alignment="CENTER" spacing="12" prefWidth="450"
+              style="-fx-background-color: linear-gradient(to bottom, #f3e5f5, #ede7f6);">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
 
-    <Label fx:id="lblEstadoConductor" text="Estado: FUERA_DE_SERVICIO"
-           style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #6a1b9a;" />
+            <Label text="Panel de Conductor - Movilidad Digital"
+                   style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #4a148c;" />
 
-    <ToggleButton fx:id="tglDisponibilidad" text="No Disponible"
-                  onAction="#handleCambiarDisponibilidad" prefWidth="220"
-                  style="-fx-base: #8e24aa; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
+            <Label fx:id="lblEstadoConductor" text="Estado: FUERA_DE_SERVICIO"
+                   style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #6a1b9a;" />
 
-    <Separator style="-fx-background-color: #ce93d8;" />
+            <ToggleButton fx:id="tglDisponibilidad" text="No Disponible"
+                          onAction="#handleCambiarDisponibilidad" prefWidth="220"
+                          style="-fx-base: #8e24aa; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
 
-    <Label text="Viajes Disponibles:"
-           style="-fx-font-weight: bold; -fx-text-fill: #4a148c;" />
+            <Separator style="-fx-background-color: #ce93d8;" />
 
-    <ListView fx:id="listViajesDisponibles" prefHeight="190"
-              style="-fx-background-color: white; -fx-border-color: #ba68c8; -fx-border-radius: 6; -fx-background-radius: 6;" />
+            <Label text="Viajes Disponibles:"
+                   style="-fx-font-weight: bold; -fx-text-fill: #4a148c;" />
 
-    <Button fx:id="btnAceptarViaje" text="Aceptar Viaje Seleccionado"
-            onAction="#handleAceptarViaje" maxWidth="Infinity"
-            style="-fx-base: #7b1fa2; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
+            <ListView fx:id="listViajesDisponibles" prefHeight="190"
+                      style="-fx-background-color: white; -fx-border-color: #ba68c8; -fx-border-radius: 6; -fx-background-radius: 6;" />
 
-    <Button text="Ver Historial de Viajes"
-            onAction="#handleVerHistorial" maxWidth="Infinity"
-            style="-fx-base: #9c27b0; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
+            <Button fx:id="btnAceptarViaje" text="Aceptar Viaje Seleccionado"
+                    onAction="#handleAceptarViaje" maxWidth="Infinity"
+                    style="-fx-base: #7b1fa2; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
 
-    <Button text="Volver al Inicio"
-            onAction="#handleVolverInicio" maxWidth="Infinity"
-            style="-fx-base: #ab47bc; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
+            <Button text="Ver Historial de Viajes"
+                    onAction="#handleVerHistorial" maxWidth="Infinity"
+                    style="-fx-base: #9c27b0; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
 
-    <Button text="Volver al Login / Salir"
-            onAction="#handleVolverLogin" maxWidth="Infinity"
-            style="-fx-base: #5e35b1; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
+            <Button text="Volver al Inicio"
+                    onAction="#handleVolverInicio" maxWidth="Infinity"
+                    style="-fx-base: #ab47bc; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
 
-</VBox>
+            <Button text="Volver al Login / Salir"
+                    onAction="#handleVolverLogin" maxWidth="Infinity"
+                    style="-fx-base: #5e35b1; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="6" style="-fx-padding: 10; -fx-background-color: #ffffff;">
+            <Label text="Recorrido del viaje seleccionado (Conductor ➔ Origen ➔ Destino)"
+                   style="-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #4a148c;" />
+            <WebView fx:id="mapaConductorWebView" maxHeight="Infinity" maxWidth="Infinity" VBox.vgrow="ALWAYS" />
+        </VBox>
+    </center>
+
+</BorderPane>

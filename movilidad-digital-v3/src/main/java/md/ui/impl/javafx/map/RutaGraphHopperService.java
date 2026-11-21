@@ -34,7 +34,7 @@ public class RutaGraphHopperService {
         GraphHopper gh = new GraphHopper();
         gh.setOSMFile(osmPath.toString());
         gh.setGraphHopperLocation(cacheDir.toString());
-        gh.setEncodedValuesString("car_access, car_average_speed");
+        //gh.setEncodedValuesString("car_access, car_average_speed");
         gh.setProfiles(new Profile("car").setWeighting("fastest"));
         gh.importOrLoad();
 

@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.stage.Stage;
+import md.modelo.Usuario;
 import md.modelo.Viaje;
 import java.util.List;
 
@@ -15,6 +16,11 @@ public class PanelHistorialConductorController {
     private ListView<Viaje> listHistorialViajes;
 
     private String emailConductor;
+    private Usuario usuarioActual;
+
+    public void setUsuarioActual(Usuario usuarioActual) {
+        this.usuarioActual = usuarioActual;
+    }
 
     /**
      * Recibe el email del conductor logueado actualmente y carga su historial
@@ -89,7 +95,7 @@ public class PanelHistorialConductorController {
     @FXML
     private void handleVolverPanel() {
         try {
-            java.net.URL url = getClass().getResource("/ui/javafx/vistas/PanelConductor.fxml"); // ajustá la ruta/nombre de tu FXML
+            java.net.URL url = getClass().getResource("/ui/javafx/vistas/PanelConductor.fxml");
             if (url == null) {
                 System.err.println("No se encontró el FXML del panel.");
                 return;
@@ -97,7 +103,13 @@ public class PanelHistorialConductorController {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(url, java.util.ResourceBundle.getBundle("ui.i18n.labels"));
             javafx.scene.Parent root = loader.load();
 
+            PanelConductorController panelController = loader.getController();
+            if (panelController != null && usuarioActual != null) {
+                panelController.setUsuarioActual(usuarioActual);
+            }
+
             Stage stage = (Stage) listHistorialViajes.getScene().getWindow();
+            stage.setTitle("Movilidad Digital - Panel de Conductor");
             stage.setScene(new javafx.scene.Scene(root));
             stage.show();
         } catch (Exception e) {
