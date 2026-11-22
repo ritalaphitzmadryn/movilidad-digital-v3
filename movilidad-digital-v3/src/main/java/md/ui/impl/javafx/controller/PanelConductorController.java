@@ -33,7 +33,8 @@ public class PanelConductorController implements Initializable {
 
     private static final List<String> VIAJES_DISPONIBLES_SESION = new ArrayList<>();
     private static boolean viajesInicializadosEnSesion = false;
-
+    private md.modelo.TipoVehiculo vehiculoActual = md.modelo.TipoVehiculo.AUTO;
+    
     @FXML
     private Label lblEstadoConductor;
 
@@ -325,6 +326,7 @@ public class PanelConductorController implements Initializable {
             }
 
             String[] puntos = {"UNPSJB", "Costanera", "Terminal", "Centro", "Ecocentro", "Puerto Madryn"};
+            String[] vehiculos = {"Auto", "Moto"};
             Random rnd = new Random();
 
             int cantidadViajes = 3;
@@ -336,11 +338,21 @@ public class PanelConductorController implements Initializable {
                     destino = puntos[rnd.nextInt(puntos.length)];
                 }
 
+                // Garantiza al menos un viaje en Auto (#1) y uno en Moto (#2); el #3 es aleatorio
+                String vehiculo;
+                if (i == 1) {
+                    vehiculo = "Auto";
+                } else if (i == 2) {
+                    vehiculo = "Moto";
+                } else {
+                    vehiculo = vehiculos[rnd.nextInt(vehiculos.length)];
+                }
+
                 double distKm = 1.5 + (rnd.nextDouble() * 6.5);
                 String viajeTexto = String.format(
                         Locale.US,
-                        "Viaje #%d (%s): %s ➔ %s (Aprox. %.1f km)",
-                        i, cliente, origen, destino, distKm
+                        "Viaje #%d [%s] (%s): %s ➔ %s (Aprox. %.1f km)",
+                        i, vehiculo, cliente, origen, destino, distKm
                 );
                 VIAJES_DISPONIBLES_SESION.add(viajeTexto);
             }
@@ -355,22 +367,22 @@ public class PanelConductorController implements Initializable {
         if (lugar == null) return null;
         String l = lugar.toLowerCase(Locale.ROOT);
         if (l.contains("unpsjb")) {
-            return new double[]{-42.7856, -65.0056};
+            return new double[]{-42.7856, -65.0065}; // Blvd. Brown (UNPSJB, tierra firme)
         }
         if (l.contains("costanera")) {
-            return new double[]{-42.7685, -65.0320};
+            return new double[]{-42.7685, -65.0355}; // Av. Roca y 28 de Julio (sobre calle)
         }
         if (l.contains("terminal")) {
-            return new double[]{-42.7758, -65.0525};
+            return new double[]{-42.7758, -65.0525}; // Terminal de Ómnibus
         }
         if (l.contains("centro")) {
-            return new double[]{-42.7692, -65.0385};
+            return new double[]{-42.7692, -65.0385}; // Plaza San Martín / Centro
         }
         if (l.contains("ecocentro")) {
-            return new double[]{-42.7419, -65.0215};
+            return new double[]{-42.7935, -65.0085}; // Ecocentro Pampa Azul / Punta Cuevas (tierra firme)
         }
         if (l.contains("puerto madryn")) {
-            return new double[]{-42.7660, -65.0250};
+            return new double[]{-42.7670, -65.0410}; // Zona urbana céntrica
         }
         return null;
     }
@@ -380,9 +392,14 @@ public class PanelConductorController implements Initializable {
         destinoActual = "Destino del viaje";
         distanciaActualKm = 0.0;
         costoActual = 2000.0;
+        vehiculoActual = md.modelo.TipoVehiculo.AUTO;
 
         if (textoViaje == null || textoViaje.isBlank()) {
             return;
+        }
+
+        if (textoViaje.toLowerCase(Locale.ROOT).contains("moto")) {
+            vehiculoActual = md.modelo.TipoVehiculo.MOTO;
         }
 
         Matcher matcherDist = Pattern
@@ -415,8 +432,12 @@ public class PanelConductorController implements Initializable {
             }
         }
 
-        costoActual = 2000.0 + (distanciaActualKm * 200.0);
-        System.out.println("📏 [Resumen] Origen: " + origenActual + " | Destino: " + destinoActual
+        double base = (vehiculoActual == md.modelo.TipoVehiculo.MOTO) ? 1500.0 : 2000.0;
+        double porKm = (vehiculoActual == md.modelo.TipoVehiculo.MOTO) ? 150.0 : 200.0;
+        costoActual = base + (distanciaActualKm * porKm);
+
+        System.out.println("📏 [Resumen] Vehículo: " + vehiculoActual
+                + " | Origen: " + origenActual + " | Destino: " + destinoActual
                 + " | Distancia: " + distanciaActualKm + " km | Costo: $" + costoActual);
     }
 
@@ -437,6 +458,22 @@ public class PanelConductorController implements Initializable {
             }
 
             if (viajeSeleccionado != null) {
+                md.modelo.TipoVehiculo tipoViaje = viajeSeleccionado.toLowerCase(Locale.ROOT).contains("moto")
+                        ? md.modelo.TipoVehiculo.MOTO
+                        : md.modelo.TipoVehiculo.AUTO;
+
+                md.modelo.TipoVehiculo tipoVehiculoConductor = obtenerVehiculoActivoConductor();
+
+                if (tipoVehiculoConductor != null && tipoVehiculoConductor != tipoViaje) {
+                    Alert alerta = new Alert(Alert.AlertType.WARNING);
+                    alerta.setTitle("Vehículo incompatible");
+                    alerta.setHeaderText("No podés aceptar este viaje");
+                    alerta.setContentText("Tu vehículo activo es " + tipoVehiculoConductor
+                            + " y este viaje requiere " + tipoViaje + ".");
+                    alerta.showAndWait();
+                    return;
+                }
+
                 extraerDatosViajeSeleccionado(viajeSeleccionado);
                 System.out.println("¡Viaje aceptado con éxito!: " + viajeSeleccionado);
 
@@ -509,13 +546,21 @@ public class PanelConductorController implements Initializable {
                         cD != null ? cD[1] : -65.0320
                 );
 
+                md.modelo.TipoVehiculo tipoVehiculoElegido = (vehiculoActual != null)
+                        ? vehiculoActual
+                        : md.modelo.TipoVehiculo.AUTO;
+
+                md.modelo.TipoServicio tipoServicioElegido = (tipoVehiculoElegido == md.modelo.TipoVehiculo.MOTO)
+                        ? md.modelo.TipoServicio.ENVIOS
+                        : md.modelo.TipoServicio.PASAJEROS;
+
                 md.modelo.Servicio servicioViaje = null;
                 try {
                     md.logica.GestorMovilidad gestor = md.aplicacion.Aplicacion.getGestor();
                     if (gestor != null) {
                         servicioViaje = gestor.buscarServicioAdecuado(
-                                md.modelo.TipoServicio.PASAJEROS,
-                                md.modelo.TipoVehiculo.AUTO,
+                                tipoServicioElegido,
+                                tipoVehiculoElegido,
                                 md.modelo.CategoriaVehiculo.ESTANDAR
                         );
                     }
@@ -523,13 +568,19 @@ public class PanelConductorController implements Initializable {
                 }
 
                 if (servicioViaje == null) {
+                    String nombreServicioFallback = (tipoVehiculoElegido == md.modelo.TipoVehiculo.MOTO)
+                            ? "Moto Standard"
+                            : "Standard";
+                    double baseFallback = (tipoVehiculoElegido == md.modelo.TipoVehiculo.MOTO) ? 1500.0 : 2000.0;
+                    double kmFallback = (tipoVehiculoElegido == md.modelo.TipoVehiculo.MOTO) ? 150.0 : 200.0;
+
                     servicioViaje = new md.modelo.Servicio(
-                            "Standard",
-                            md.modelo.TipoServicio.PASAJEROS,
-                            md.modelo.TipoVehiculo.AUTO,
+                            nombreServicioFallback,
+                            tipoServicioElegido,
+                            tipoVehiculoElegido,
                             md.modelo.CategoriaVehiculo.ESTANDAR,
-                            2000.0,
-                            200.0,
+                            baseFallback,
+                            kmFallback,
                             100.0
                     );
                 }
@@ -543,8 +594,8 @@ public class PanelConductorController implements Initializable {
                 String emailConductor = usuarioActual.getEmail();
 
                 dao.guardarViajeRealizado(viajeTerminado, emailConductor);
-                System.out.println("💾 [DAO] Viaje guardado para conductor (" + emailConductor + "): "
-                        + origenActual + " ➔ " + destinoActual);
+                System.out.println("💾 [DAO] Viaje (" + tipoVehiculoElegido + ") guardado para conductor ("
+                        + emailConductor + "): " + origenActual + " ➔ " + destinoActual);
             } else {
                 System.out.println("AVISO: usuarioActual es NULL, no se pudo guardar el registro.");
             }
@@ -565,10 +616,12 @@ public class PanelConductorController implements Initializable {
 
         String resumen = String.format(
                 Locale.US,
+                "🏍️/🚗 Vehículo: %s%n" +
                 "📍 Origen: %s%n" +
                 "🏁 Destino: %s%n" +
                 "📏 Distancia: %.2f km%n" +
                 "💰 Costo: $%.2f",
+                vehiculoActual != null ? vehiculoActual.name() : "AUTO",
                 origenActual,
                 destinoActual,
                 distanciaActualKm,
@@ -581,7 +634,6 @@ public class PanelConductorController implements Initializable {
         alertaResumen.setContentText(resumen);
         alertaResumen.showAndWait();
     }
-
     @FXML
     private void handleVerHistorial(javafx.event.ActionEvent event) {
         try {
@@ -635,5 +687,14 @@ public class PanelConductorController implements Initializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    private md.modelo.TipoVehiculo obtenerVehiculoActivoConductor() {
+        if (conductorActual != null && conductorActual.getVehiculoActivo() != null) {
+            md.modelo.TipoVehiculo tipo = conductorActual.getVehiculoActivo().getTipoVehiculo();
+            if (tipo != null) {
+                return tipo;
+            }
+        }
+        return null;
     }
 }

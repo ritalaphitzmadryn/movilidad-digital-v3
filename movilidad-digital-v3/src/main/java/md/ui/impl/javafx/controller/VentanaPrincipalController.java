@@ -491,7 +491,7 @@ public class VentanaPrincipalController implements Initializable {
             Button btnConfirmar = new Button(bundle != null && bundle.containsKey("btn.confirm.search") ? bundle.getString("btn.confirm.search") : "Confirmar y Buscar");
             btnConfirmar.setStyle("-fx-background-color: #2e7d32; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
 
-            Button btnCancelar = new Button(bundle != null && bundle.containsKey("btn.cancel") ? bundle.getString("btn.cancel") : "Cancelar");
+            Button btnCancelar = new Button(bundle != null && bundle.containsKey("btn.cancel") ? bundle.getString("btn.cancel") : "Me arrepentí");
             btnCancelar.setStyle("-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8px 16px; -fx-cursor: hand;");
 
             HBox botonesBox = new HBox(12, btnConfirmar, btnCancelar);
