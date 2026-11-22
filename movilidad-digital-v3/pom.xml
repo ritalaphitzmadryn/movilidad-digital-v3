@@ -11,22 +11,23 @@
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
     <dependencies>
-    <dependency>
-    <groupId>com.graphhopper</groupId>
-    <artifactId>graphhopper-core</artifactId>
-    <version>7.0</version>
-</dependency>
-    <dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>42.6.0</version>
-	</dependency>
+        <dependency>
+            <groupId>com.graphhopper</groupId>
+            <artifactId>graphhopper-core</artifactId>
+            <version>7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.6.0</version>
+        </dependency>
         <!-- Dependencias de JavaFX -->
         <dependency>
-    <groupId>org.openjfx</groupId>
-    <artifactId>javafx-web</artifactId>
-    <version>17.0.2</version>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>17.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
@@ -34,20 +35,31 @@
             <version>17.0.2</version>
         </dependency>
     </dependencies>
-<build>
-    <plugins>
-        <!-- Plugin de Maven para JavaFX -->
-        <plugin>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-maven-plugin</artifactId>
-            <version>0.0.8</version>
-            <configuration>
-    <options>
-        <option>--enable-native-access=javafx.graphics,javafx.web</option>
-    </options>
-    <mainClass>md.aplicacion.Aplicacion</mainClass> 
-            </configuration>
-        </plugin>
-    </plugins>
-</build>
+
+    <build>
+        <plugins>
+            <!-- Plugin de Maven para JavaFX -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <options>
+                        <option>--enable-native-access=javafx.graphics,javafx.web</option>
+                    </options>
+                    <mainClass>md.aplicacion.Aplicacion</mainClass>
+                </configuration>
+            </plugin>
+
+            <!-- Plugin para ejecutar la clase main normal (útil para CLI sin arrancar JavaFX) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>md.aplicacion.Aplicacion</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
