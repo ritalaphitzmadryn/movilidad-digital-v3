@@ -6,6 +6,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import md.aplicacion.Aplicacion;
+import md.logica.GestorMovilidad;
 import md.ui.api.IInterfazUsuario;
 
 public class JavaFXUserInterface implements IInterfazUsuario {
@@ -14,6 +16,11 @@ public class JavaFXUserInterface implements IInterfazUsuario {
 
     @Override
     public void iniciar() {
+        // Asegura que el gestor ya inicializado en Aplicacion esté disponible
+        GestorMovilidad gestor = Aplicacion.getGestor();
+        if (gestor == null) {
+            System.err.println("Advertencia: Aplicacion.getGestor() es null al iniciar JavaFX.");
+        }
         Application.launch(AppFX.class);
     }
 
@@ -31,26 +38,28 @@ public class JavaFXUserInterface implements IInterfazUsuario {
         }
     }
 
-    // Método centralizado para cambiar de ventana/escena desde cualquier controlador
     public static void cambiarVista(String fxmlPath, String tituloVentana) {
         Platform.runLater(() -> {
             try {
                 FXMLLoader loader = new FXMLLoader(JavaFXUserInterface.class.getResource(fxmlPath));
                 Parent root = loader.load();
-                
-                primaryStageStatic.setTitle(tituloVentana);
-                primaryStageStatic.setScene(new Scene(root));
-                primaryStageStatic.show();
+
+                if (primaryStageStatic != null) {
+                    primaryStageStatic.setTitle(tituloVentana);
+                    primaryStageStatic.setScene(new Scene(root));
+                    primaryStageStatic.show();
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
     }
-    
+
     private static void cargarVistaInicial(String fxmlPath, String titulo) {
         try {
             FXMLLoader loader = new FXMLLoader(JavaFXUserInterface.class.getResource(fxmlPath));
             Parent root = loader.load();
+
             primaryStageStatic.setTitle(titulo);
             primaryStageStatic.setScene(new Scene(root));
             primaryStageStatic.setResizable(false);

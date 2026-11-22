@@ -11,6 +11,7 @@ public class CargaParametros {
     private static final Properties CONFIG = new Properties();
 
     static {
+    	
         // Intento 1: Buscar en el classpath (src/main/resources)
         try (InputStream in = CargaParametros.class.getResourceAsStream("/application.properties")) {
             if (in != null) {
