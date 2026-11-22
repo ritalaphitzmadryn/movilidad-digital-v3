@@ -1,6 +1,7 @@
 package md.ui.impl.cli;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
@@ -8,7 +9,7 @@ import java.util.UUID;
 import md.logica.GestorMovilidad;
 import md.modelo.*;
 import md.rutas.api.IRutasService;
-import md.rutas.impl.RutasServiceImpl; // <--- Import corregido
+import md.rutas.impl.RutasServiceImpl;
 import md.ui.api.IInterfazUsuario;
 
 public class InterfazUsuario implements IInterfazUsuario {
@@ -24,23 +25,43 @@ public class InterfazUsuario implements IInterfazUsuario {
 
     @Override
     public void iniciar() {
-        System.out.println("================================");
-        System.out.println("        MOVILIDAD DIGITAL");
-        System.out.println("================================");
+        precargarViajesSiNoHayPendientes();
 
-        System.out.print("Ingrese su ID de usuario: ");
-        String idUsuario = scanner.nextLine();
+        System.out.println("====================================");
+        System.out.println("         MOVILIDAD DIGITAL");
+        System.out.println("====================================");
+        System.out.println("Ingresá tu nombre o email para comenzar.");
+        System.out.println("Tip: escribí 'listar' para ver usuarios o '0' para salir.\n");
 
-        usuarioActual = buscarUsuario(idUsuario);
+        usuarioActual = null;
+        while (usuarioActual == null) {
+            System.out.print("Nombre o email: ");
+            String entrada = scanner.nextLine().trim();
 
-        if (usuarioActual == null) {
-            System.out.println("Usuario no encontrado.");
-            return;
+            if (entrada.equals("0")) {
+                detener();
+                return;
+            }
+
+            if (entrada.equalsIgnoreCase("listar")) {
+                mostrarUsuariosDisponibles();
+                continue;
+            }
+
+            if (entrada.isEmpty()) {
+                System.out.println("Por favor, ingresá tu nombre o email (o '0' para salir).");
+                continue;
+            }
+
+            usuarioActual = buscarUsuario(entrada);
+
+            if (usuarioActual == null) {
+                System.out.println("No encontramos ningún usuario con ese nombre o email. Probá de nuevo o escribí 'listar'.");
+            }
         }
 
-        System.out.println("¡Bienvenido/a, " + usuarioActual.getNombre() + "!");
+        System.out.println("\n¡Hola, " + usuarioActual.getNombre() + "! Qué bueno tenerte por acá.");
 
-        // Selector de rol inteligente si tiene ambos perfiles
         boolean tieneCliente = usuarioActual.getCliente() != null;
         boolean tieneConductor = usuarioActual.getConductor() != null;
 
@@ -49,7 +70,7 @@ public class InterfazUsuario implements IInterfazUsuario {
             System.out.println("1. Cliente");
             System.out.println("2. Conductor");
             System.out.print("Seleccione una opción: ");
-            String opcionRol = scanner.nextLine();
+            String opcionRol = scanner.nextLine().trim();
 
             if (opcionRol.equals("2")) {
                 usuarioActual.cambiarRolActivo(RolUsuario.CONDUCTOR);
@@ -67,14 +88,73 @@ public class InterfazUsuario implements IInterfazUsuario {
         mostrarMenu();
     }
 
+    private void precargarViajesSiNoHayPendientes() {
+        if (!gestor.obtenerViajesPendientes().isEmpty()) {
+            return;
+        }
+
+        List<Usuario> clientesDisponibles = new ArrayList<>();
+        for (Usuario u : gestor.obtenerUsuarios()) {
+            if (u.getCliente() != null) {
+                clientesDisponibles.add(u);
+            }
+        }
+
+        if (clientesDisponibles.isEmpty()) {
+            return;
+        }
+
+        Servicio servicioEstandar = new Servicio(
+            "Standard",
+            TipoServicio.PASAJEROS,
+            TipoVehiculo.AUTO,
+            CategoriaVehiculo.ESTANDAR,
+            100.0,
+            50.0,
+            10.0
+        );
+
+        String[][] rutasEjemplo = {
+            {"Plaza San Martín", "Universidad (UNPSJB)"},
+            {"Terminal de Ómnibus", "Ecocentro"},
+            {"Muelle Luis Piedra Buena", "Universidad Tecnológica Nacional (UTN)"}
+        };
+
+        for (int i = 0; i < rutasEjemplo.length; i++) {
+            Usuario cliente = clientesDisponibles.get(i % clientesDisponibles.size());
+            String origenNombre = rutasEjemplo[i][0];
+            String destinoNombre = rutasEjemplo[i][1];
+
+            double[] cOrigen = obtenerCoordenadas(origenNombre);
+            double[] cDestino = obtenerCoordenadas(destinoNombre);
+
+            Ubicacion origen = new Ubicacion(origenNombre, cOrigen[0], cOrigen[1]);
+            Ubicacion destino = new Ubicacion(destinoNombre, cDestino[0], cDestino[1]);
+
+            gestor.solicitarViaje(cliente, servicioEstandar, origen, destino, LocalDateTime.now().minusMinutes(5L * (3 - i)));
+        }
+    }
+
+    private void mostrarUsuariosDisponibles() {
+        System.out.println("\n--- Usuarios disponibles ---");
+        for (Usuario u : gestor.obtenerUsuarios()) {
+            System.out.println("- " + u.getNombre() + " | " + u.getEmail());
+        }
+        System.out.println();
+    }
+
     @Override
     public void detener() {
         System.out.println("Cerrando sesión y finalizando interfaz de consola...");
     }
 
-    private Usuario buscarUsuario(String idUsuario) {
+    private Usuario buscarUsuario(String dato) {
         for (Usuario usuario : gestor.obtenerUsuarios()) {
-            if (usuario.getId().equals(idUsuario)) {
+            boolean coincideNombre = usuario.getNombre() != null && usuario.getNombre().equalsIgnoreCase(dato);
+            boolean coincideEmail = usuario.getEmail() != null && usuario.getEmail().equalsIgnoreCase(dato);
+            boolean coincideId = usuario.getId() != null && usuario.getId().equalsIgnoreCase(dato);
+
+            if (coincideNombre || coincideEmail || coincideId) {
                 return usuario;
             }
         }
@@ -99,7 +179,7 @@ public class InterfazUsuario implements IInterfazUsuario {
 
             System.out.println("0. Salir de la sesión");
             System.out.print("Seleccione una opción: ");
-            String opcion = scanner.nextLine();
+            String opcion = scanner.nextLine().trim();
 
             if (usuarioActual.getRolActivo() == RolUsuario.CLIENTE) {
                 salir = procesarOpcionCliente(opcion);
@@ -183,9 +263,6 @@ public class InterfazUsuario implements IInterfazUsuario {
         return false;
     }
 
-    // =====================================================
-    // MÉTODO SOLICITAR VIAJE (Con ubicaciones de Puerto Madryn)
-    // =====================================================
     public void solicitarViaje() {
         System.out.println();
         System.out.println("================================");
@@ -211,7 +288,6 @@ public class InterfazUsuario implements IInterfazUsuario {
             "Polideportivo Municipal"
         };
 
-        // Mostrar Orígenes
         System.out.println("--- SELECCIONE EL ORIGEN ---");
         for (int i = 0; i < ubicacionesDisponibles.length; i++) {
             System.out.println((i + 1) + ". " + ubicacionesDisponibles[i]);
@@ -219,7 +295,7 @@ public class InterfazUsuario implements IInterfazUsuario {
         System.out.print("Elija el número de origen: ");
         int indexOrigen = -1;
         try {
-            indexOrigen = Integer.parseInt(scanner.nextLine()) - 1;
+            indexOrigen = Integer.parseInt(scanner.nextLine().trim()) - 1;
         } catch (NumberFormatException e) {
             System.out.println("Entrada inválida.");
             return;
@@ -231,7 +307,6 @@ public class InterfazUsuario implements IInterfazUsuario {
         }
         String nombreOrigen = ubicacionesDisponibles[indexOrigen];
 
-        // Mostrar Destinos
         System.out.println("\n--- SELECCIONE EL DESTINO ---");
         for (int i = 0; i < ubicacionesDisponibles.length; i++) {
             System.out.println((i + 1) + ". " + ubicacionesDisponibles[i]);
@@ -239,7 +314,7 @@ public class InterfazUsuario implements IInterfazUsuario {
         System.out.print("Elija el número de destino: ");
         int indexDestino = -1;
         try {
-            indexDestino = Integer.parseInt(scanner.nextLine()) - 1;
+            indexDestino = Integer.parseInt(scanner.nextLine().trim()) - 1;
         } catch (NumberFormatException e) {
             System.out.println("Entrada inválida.");
             return;
@@ -256,7 +331,6 @@ public class InterfazUsuario implements IInterfazUsuario {
             return;
         }
 
-        // Seleccionar Tipo de Servicio
         System.out.println("\n--- SELECCIONE EL TIPO DE SERVICIO ---");
         String[] serviciosDisponibles = {"Económico", "Standard", "Confort", "VIP"};
         for (int i = 0; i < serviciosDisponibles.length; i++) {
@@ -265,9 +339,9 @@ public class InterfazUsuario implements IInterfazUsuario {
         System.out.print("Elija el número de servicio: ");
         int indexServicio = 1;
         try {
-            indexServicio = Integer.parseInt(scanner.nextLine()) - 1;
+            indexServicio = Integer.parseInt(scanner.nextLine().trim()) - 1;
         } catch (Exception e) {
-            indexServicio = 1; // Por defecto Standard
+            indexServicio = 1;
         }
         if (indexServicio < 0 || indexServicio >= serviciosDisponibles.length) {
             indexServicio = 1;
@@ -275,38 +349,32 @@ public class InterfazUsuario implements IInterfazUsuario {
         String tipoServicioElegido = serviciosDisponibles[indexServicio];
 
         try {
-            // Obtener coordenadas geográficas
             double[] coordsOrigen = obtenerCoordenadas(nombreOrigen);
             double[] coordsDestino = obtenerCoordenadas(nombreDestino);
 
-            // Calcular distancia y ruta usando el servicio de rutas correcto
-            IRutasService rutasService = new RutasServiceImpl(); // <--- Corregido aquí
+            IRutasService rutasService = new RutasServiceImpl();
             double distanciaKm = rutasService.calcularDistanciaKm(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
             String detalleRuta = rutasService.calcularRuta(coordsOrigen[0], coordsOrigen[1], coordsDestino[0], coordsDestino[1]);
 
-            // Estimación de tiempo (velocidad urbana de 30 km/h)
             double tiempoMinutos = (distanciaKm / 30.0) * 60.0;
 
-            // Instanciar el Servicio con los parámetros de dominio
             Servicio servicioObj = new Servicio(
                 tipoServicioElegido,
                 TipoServicio.PASAJEROS,
                 TipoVehiculo.AUTO,
                 CategoriaVehiculo.ESTANDAR,
-                100.0, // Tarifa base
-                50.0,  // Precio por km
-                10.0   // Precio por minuto
+                100.0,
+                50.0,
+                10.0
             );
 
             double costoTotal = servicioObj.calcularCosto(distanciaKm, tiempoMinutos);
 
-            // Crear objetos de Ubicación y registrar el viaje en el gestor
             Ubicacion origenObj = new Ubicacion(nombreOrigen, coordsOrigen[0], coordsOrigen[1]);
             Ubicacion destinoObj = new Ubicacion(nombreDestino, coordsDestino[0], coordsDestino[1]);
 
             Viaje nuevoViaje = gestor.solicitarViaje(usuarioActual, servicioObj, origenObj, destinoObj, LocalDateTime.now());
 
-            // Mostrar resumen en consola
             System.out.println();
             System.out.println("================================");
             System.out.println("   ¡VIAJE SOLICITADO CON ÉXITO!");
@@ -343,7 +411,7 @@ public class InterfazUsuario implements IInterfazUsuario {
     public void calificarServicio() {
         System.out.println("\n----- CALIFICAR SERVICIO -----");
         System.out.print("Ingrese el ID del viaje: ");
-        String id = scanner.nextLine();
+        String id = scanner.nextLine().trim();
         try {
             UUID idViaje = UUID.fromString(id);
             System.out.println("Viaje seleccionado: " + idViaje);
@@ -354,18 +422,56 @@ public class InterfazUsuario implements IInterfazUsuario {
 
     public void verViajesPendientes() {
         System.out.println("\n----- VIAJES PENDIENTES -----");
-        System.out.println("Funcionalidad de consulta de viajes pendientes.");
+        List<Viaje> pendientes = gestor.obtenerViajesPendientes();
+
+        if (pendientes.isEmpty()) {
+            System.out.println("No hay viajes pendientes en este momento.");
+            return;
+        }
+
+        for (int i = 0; i < pendientes.size(); i++) {
+            Viaje v = pendientes.get(i);
+            String cliente = (v.getCliente() != null) ? v.getCliente().getNombre() : "Sin datos";
+            String origen = (v.getOrigen() != null) ? v.getOrigen().getDireccion() : "Origen desconocido";
+            String destino = (v.getDestino() != null) ? v.getDestino().getDireccion() : "Destino desconocido";
+
+            System.out.printf(Locale.US, "%d. [%s] %s -> %s | Pasajero: %s | $%.2f%n",
+                    (i + 1), v.getEstadoActual(), origen, destino, cliente, v.getCostoCalculado());
+        }
     }
 
     public void aceptarViaje() {
         System.out.println("\n----- ACEPTAR VIAJE -----");
-        System.out.print("Ingrese el ID del viaje: ");
-        String id = scanner.nextLine();
+        List<Viaje> pendientes = gestor.obtenerViajesPendientes();
+
+        if (pendientes.isEmpty()) {
+            System.out.println("No hay viajes pendientes para aceptar.");
+            return;
+        }
+
+        verViajesPendientes();
+        System.out.print("\nSeleccione el número de viaje a aceptar (o '0' para cancelar): ");
+        String entrada = scanner.nextLine().trim();
+
+        if (entrada.equals("0")) {
+            return;
+        }
+
         try {
-            UUID idViaje = UUID.fromString(id);
-            System.out.println("Viaje seleccionado: " + idViaje);
-        } catch (IllegalArgumentException e) {
-            System.out.println("El ID del viaje no es válido.");
+            int indice = Integer.parseInt(entrada) - 1;
+            if (indice < 0 || indice >= pendientes.size()) {
+                System.out.println("Número de viaje fuera de rango.");
+                return;
+            }
+
+            Viaje seleccionado = pendientes.get(indice);
+            gestor.aceptarViaje(seleccionado.getId(), usuarioActual, LocalDateTime.now());
+            System.out.println("¡Viaje aceptado con éxito! Estado actual: " + seleccionado.getEstadoActual());
+
+        } catch (NumberFormatException e) {
+            System.out.println("Entrada inválida. Ingresá un número de la lista.");
+        } catch (Exception e) {
+            System.out.println("No se pudo aceptar el viaje: " + e.getMessage());
         }
     }
 
@@ -373,9 +479,9 @@ public class InterfazUsuario implements IInterfazUsuario {
         System.out.println("\n----- ACTUALIZAR UBICACIÓN -----");
         try {
             System.out.print("Ingrese latitud: ");
-            double latitud = Double.parseDouble(scanner.nextLine());
+            double latitud = Double.parseDouble(scanner.nextLine().trim());
             System.out.print("Ingrese longitud: ");
-            double longitud = Double.parseDouble(scanner.nextLine());
+            double longitud = Double.parseDouble(scanner.nextLine().trim());
             System.out.println("Nueva ubicación: " + latitud + ", " + longitud);
         } catch (NumberFormatException e) {
             System.out.println("Coordenadas inválidas.");
@@ -392,7 +498,6 @@ public class InterfazUsuario implements IInterfazUsuario {
         System.out.println("Ahora está utilizando el sistema como cliente.");
     }
 
-    // Método auxiliar de coordenadas
     private double[] obtenerCoordenadas(String lugar) {
         switch (lugar) {
             case "Municipalidad de Puerto Madryn": 

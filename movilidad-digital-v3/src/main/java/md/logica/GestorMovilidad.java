@@ -349,6 +349,17 @@ public class GestorMovilidad {
         return servicios.isEmpty() ? null : servicios.get(0);
     }
     
+        
+    public List<Viaje> obtenerViajesPendientes() {
+        List<Viaje> pendientes = new ArrayList<>();
+        for (Viaje viaje : viajes.values()) {
+            if (viaje.getConductor() == null && viaje.getEstadoActual() == md.modelo.EstadoViaje.SOLICITADO) {
+                pendientes.add(viaje);
+            }
+        }
+        return pendientes;
+    }
+    
 }
 
 
